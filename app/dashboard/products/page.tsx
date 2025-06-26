@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/auth-provider'
+import { productsApi } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,7 +29,7 @@ interface Product {
 }
 
 export default function ProductsPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -54,10 +55,9 @@ export default function ProductsPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/products')
-      if (response.ok) {
-        const data = await response.json()
-        setProducts(data)
+      const response = await productsApi.getAll()
+      if (response.success) {
+        setProducts(response.data)
       }
     } catch (error) {
       console.error('Fehler beim Laden der Produkte:', error)
@@ -87,19 +87,13 @@ export default function ProductsPage() {
     if (!newProduct.name || !newProduct.price || !newProduct.category) return
 
     try {
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newProduct.name,
-          price: parseFloat(newProduct.price),
-          category: newProduct.category
-        }),
+      const response = await productsApi.create({
+        name: newProduct.name,
+        price: parseFloat(newProduct.price),
+        category: newProduct.category
       })
 
-      if (response.ok) {
+      if (response.success) {
         setNewProduct({ name: '', price: '', category: '' })
         setShowAddForm(false)
         fetchProducts()
@@ -113,19 +107,13 @@ export default function ProductsPage() {
     if (!editingProduct) return
 
     try {
-      const response = await fetch(`/api/products/${editingProduct.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: editingProduct.name,
-          price: editingProduct.price,
-          category: editingProduct.category
-        }),
+      const response = await productsApi.update(editingProduct.id, {
+        name: editingProduct.name,
+        price: editingProduct.price,
+        category: editingProduct.category
       })
 
-      if (response.ok) {
+      if (response.success) {
         setEditingProduct(null)
         fetchProducts()
       }
@@ -140,11 +128,9 @@ export default function ProductsPage() {
     }
 
     try {
-      const response = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
-      })
+      const response = await productsApi.delete(productId)
 
-      if (response.ok) {
+      if (response.success) {
         fetchProducts()
       }
     } catch (error) {

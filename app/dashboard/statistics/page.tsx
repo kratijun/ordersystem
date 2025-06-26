@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/auth-provider'
+import { ordersApi, productsApi } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -68,7 +69,7 @@ interface Statistics {
 }
 
 export default function StatisticsPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [statistics, setStatistics] = useState<Statistics | null>(null)
@@ -95,17 +96,14 @@ export default function StatisticsPage() {
     try {
       setIsRefreshing(true)
       const [ordersRes, productsRes] = await Promise.all([
-        fetch('/api/orders'),
-        fetch('/api/products')
+        ordersApi.getAll(),
+        productsApi.getAll()
       ])
 
-      const [ordersData, productsData] = await Promise.all([
-        ordersRes.json(),
-        productsRes.json()
-      ])
-
-      setOrders(ordersData)
-      setProducts(productsData)
+      if (ordersRes.success && productsRes.success) {
+        setOrders(ordersRes.data)
+        setProducts(productsRes.data)
+      }
     } catch (error) {
       console.error('Fehler beim Laden der Daten:', error)
     } finally {
@@ -187,28 +185,59 @@ export default function StatisticsPage() {
     if (!statistics) return
 
     try {
-      const response = await fetch('/api/export/statistics', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          statistics,
-          dateRange
-        }),
-      })
-
-      if (response.ok) {
-        const htmlContent = await response.text()
-        const newWindow = window.open('', '_blank')
-        if (newWindow) {
-          newWindow.document.write(htmlContent)
-          newWindow.document.close()
-          // Der Browser öffnet automatisch den Druckdialog
-        }
-      } else {
-        const error = await response.json()
-        alert(error.error || 'Fehler beim Exportieren der Statistiken')
+      // PDF Export über Browser-Print-Dialog
+      const printContent = `
+        <html>
+          <head>
+            <title>Statistiken ${dateRange.from} - ${dateRange.to}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .header { text-align: center; margin-bottom: 30px; }
+              .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
+              .metric { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f5f5f5; }
+              @media print { body { margin: 0; } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>Restaurant Statistiken</h1>
+              <p>Zeitraum: ${new Date(dateRange.from).toLocaleDateString('de-DE')} - ${new Date(dateRange.to).toLocaleDateString('de-DE')}</p>
+            </div>
+            <div class="metrics">
+              <div class="metric">
+                <h3>Bestellungen</h3>
+                <p style="font-size: 24px; font-weight: bold;">${statistics.totalOrders}</p>
+              </div>
+              <div class="metric">
+                <h3>Gesamtumsatz</h3>
+                <p style="font-size: 24px; font-weight: bold;">€${statistics.totalRevenue.toFixed(2)}</p>
+              </div>
+            </div>
+            <h2>Top Produkte</h2>
+            <table>
+              <thead>
+                <tr><th>Rang</th><th>Produkt</th><th>Menge</th><th>Umsatz</th></tr>
+              </thead>
+              <tbody>
+                ${statistics.topProducts.map((product, index) => 
+                  `<tr><td>${index + 1}</td><td>${product.name}</td><td>${product.quantity}</td><td>€${product.revenue.toFixed(2)}</td></tr>`
+                ).join('')}
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `
+      
+      const newWindow = window.open('', '_blank')
+      if (newWindow) {
+        newWindow.document.write(printContent)
+        newWindow.document.close()
+        setTimeout(() => {
+          newWindow.print()
+        }, 250)
       }
     } catch (error) {
       console.error('Fehler beim Exportieren:', error)

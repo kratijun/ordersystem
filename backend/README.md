@@ -1,173 +1,523 @@
-# Orderman Backend
+# 🚀 Orderman Backend - Express.js API Server
 
-Express.js Backend für das Orderman Restaurant Management System.
+Das Backend des Orderman Restaurant-Bestellsystems. Ein robuster Express.js Server mit TypeScript, Prisma ORM und JWT-Authentifizierung.
 
-## 🚀 Features
+## 📋 Inhaltsverzeichnis
 
-- **Authentifizierung**: JWT-basierte Authentifizierung mit Rollen (Admin/Waiter)
-- **Benutzerverwaltung**: CRUD-Operationen für Benutzer
-- **Tischverwaltung**: Tische mit Reservierungen und Status
-- **Produktverwaltung**: Kategorisierte Produkte mit Preisen
-- **Bestellsystem**: Vollständiges Bestellmanagement
-- **Küchenverwaltung**: Status-Tracking für Bestellartikel
-- **Statistiken**: Detaillierte Auswertungen und CSV-Export
-- **Sicherheit**: Rate Limiting, Helmet, CORS
+- [Überblick](#überblick)
+- [Technologie-Stack](#technologie-stack)
+- [Installation](#installation)
+- [API-Endpunkte](#api-endpunkte)
+- [Datenbankschema](#datenbankschema)
+- [Authentifizierung](#authentifizierung)
+- [Entwicklung](#entwicklung)
+- [Deployment](#deployment)
+- [Troubleshooting](#troubleshooting)
 
-## 🛠️ Tech Stack
+## 🔍 Überblick
 
-- **Runtime**: Node.js mit TypeScript
-- **Framework**: Express.js
-- **Database**: SQLite mit Prisma ORM
-- **Authentifizierung**: JWT (jsonwebtoken)
-- **Sicherheit**: bcryptjs, helmet, cors, express-rate-limit
-- **Entwicklung**: nodemon, ts-node
+Das Backend stellt eine vollständige REST API für das Restaurant-Bestellsystem bereit:
 
-## 📦 Installation
+- **🔐 JWT-Authentifizierung** mit Rollen-basierter Zugriffskontrolle
+- **📊 SQLite Database** mit Prisma ORM für einfache Entwicklung
+- **🛡️ Security Features** mit Helmet, CORS und Rate Limiting
+- **📝 TypeScript** für Type Safety und bessere Entwicklererfahrung
+- **🔄 Hot Reload** mit Nodemon für schnelle Entwicklung
 
-1. **Dependencies installieren**:
-   \`\`\`bash
-   cd backend
-   npm install
-   \`\`\`
+## 🛠️ Technologie-Stack
 
-2. **Umgebungsvariablen konfigurieren**:
-   \`\`\`bash
-   # .env Datei erstellen
-   DATABASE_URL="file:./dev.db"
-   JWT_SECRET="orderman-super-secret-jwt-key-2024"
-   JWT_EXPIRES_IN="24h"
-   JWT_REFRESH_SECRET="orderman-super-secret-refresh-key-2024"
-   JWT_REFRESH_EXPIRES_IN="7d"
-   PORT=5000
-   NODE_ENV="development"
-   FRONTEND_URL="http://localhost:3000"
-   \`\`\`
+- **Runtime**: Node.js 18+
+- **Framework**: Express.js 4.x
+- **Sprache**: TypeScript 5.x
+- **Database**: SQLite 3
+- **ORM**: Prisma 5.x
+- **Authentication**: JWT + bcryptjs
+- **Security**: Helmet, CORS, express-rate-limit
+- **Logging**: Morgan
+- **Development**: Nodemon, ts-node
 
-3. **Datenbank einrichten**:
-   \`\`\`bash
-   npm run db:generate
-   npm run db:push
-   npm run db:seed
-   \`\`\`
+## 🚀 Installation
 
-4. **Entwicklungsserver starten**:
-   \`\`\`bash
-   npm run dev
-   \`\`\`
+### Voraussetzungen
+- Node.js 18 oder höher
+- npm 8 oder höher
 
-## 🔧 Verfügbare Scripts
+### Setup
+```bash
+# In Backend-Verzeichnis wechseln
+cd backend
 
-- \`npm run dev\` - Entwicklungsserver mit Hot Reload
-- \`npm run build\` - TypeScript kompilieren
-- \`npm start\` - Produktionsserver starten
-- \`npm run db:generate\` - Prisma Client generieren
-- \`npm run db:push\` - Datenbankschema pushen
-- \`npm run db:migrate\` - Migration erstellen
-- \`npm run db:seed\` - Testdaten einpflegen
-- \`npm run db:studio\` - Prisma Studio öffnen
+# Dependencies installieren
+npm install
 
-## 📡 API Endpoints
+# Environment-Datei erstellen
+cp .env.example .env
 
-### Authentifizierung
-- \`POST /api/auth/login\` - Benutzer anmelden
-- \`POST /api/auth/register\` - Benutzer registrieren
-- \`GET /api/auth/me\` - Aktueller Benutzer
+# Datenbank initialisieren
+npx prisma db push
 
-### Benutzer
-- \`GET /api/users\` - Alle Benutzer (Admin)
-- \`POST /api/users\` - Benutzer erstellen (Admin)
-- \`PUT /api/users/:id\` - Benutzer bearbeiten (Admin)
-- \`DELETE /api/users/:id\` - Benutzer löschen (Admin)
-- \`PUT /api/users/profile\` - Eigenes Profil bearbeiten
+# Test-Daten laden
+npx prisma db seed
 
-### Tische
-- \`GET /api/tables\` - Alle Tische
-- \`POST /api/tables\` - Tisch erstellen (Admin)
-- \`PUT /api/tables/:id\` - Tisch bearbeiten
-- \`DELETE /api/tables/:id\` - Tisch löschen (Admin)
-- \`PUT /api/tables/:id/reserve\` - Tisch reservieren
-- \`PUT /api/tables/:id/close\` - Tisch schließen
+# Development Server starten
+npm run dev
+```
 
-### Produkte
-- \`GET /api/products\` - Alle Produkte
-- \`GET /api/products/categories\` - Alle Kategorien
-- \`POST /api/products\` - Produkt erstellen (Admin)
-- \`PUT /api/products/:id\` - Produkt bearbeiten (Admin)
-- \`DELETE /api/products/:id\` - Produkt löschen (Admin)
+### Environment Variables (.env)
+```env
+# Database
+DATABASE_URL="file:./prisma/dev.db"
 
-### Bestellungen
-- \`GET /api/orders\` - Alle Bestellungen
-- \`GET /api/orders/:id\` - Bestellung Details
-- \`POST /api/orders\` - Bestellung erstellen
-- \`PUT /api/orders/:id\` - Bestellung bearbeiten
-- \`DELETE /api/orders/:id\` - Bestellung löschen (Admin)
-- \`POST /api/orders/:id/items\` - Artikel hinzufügen
+# JWT Secret (Mindestens 32 Zeichen)
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
 
-### Bestellartikel
-- \`GET /api/order-items\` - Alle Bestellartikel
-- \`GET /api/order-items/kitchen\` - Küchen-Artikel
-- \`PUT /api/order-items/:id\` - Artikel bearbeiten
-- \`PUT /api/order-items/:id/start-preparation\` - Zubereitung starten
-- \`PUT /api/order-items/:id/mark-ready\` - Als fertig markieren
-- \`DELETE /api/order-items/:id\` - Artikel löschen (Admin)
+# Server
+PORT=5000
+NODE_ENV=development
 
-### Statistiken
-- \`GET /api/statistics\` - Statistiken abrufen
-- \`GET /api/statistics/export\` - CSV Export (Admin)
+# CORS (Optional)
+FRONTEND_URL=http://localhost:3000
+
+# Rate Limiting (Optional)
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+```
+
+## 📡 API-Endpunkte
+
+### 🔐 Authentication
+```http
+POST   /api/auth/login      # Benutzer-Anmeldung
+POST   /api/auth/register   # Benutzer-Registrierung
+GET    /api/auth/me         # Aktueller Benutzer
+```
+
+### 👥 Users (Admin only)
+```http
+GET    /api/users           # Alle Benutzer auflisten
+POST   /api/users           # Neuen Benutzer erstellen
+PUT    /api/users/:id       # Benutzer aktualisieren
+DELETE /api/users/:id       # Benutzer löschen
+PUT    /api/users/profile   # Eigenes Profil aktualisieren
+```
+
+### 🪑 Tables
+```http
+GET    /api/tables          # Alle Tische auflisten
+GET    /api/tables/:id      # Tisch Details
+POST   /api/tables          # Neuen Tisch erstellen (Admin)
+PUT    /api/tables/:id      # Tisch aktualisieren
+DELETE /api/tables/:id      # Tisch löschen (Admin)
+PUT    /api/tables/:id/reserve   # Tisch reservieren
+PUT    /api/tables/:id/close     # Tisch schließen
+```
+
+### 🍽️ Products (Admin only)
+```http
+GET    /api/products         # Alle Produkte auflisten
+GET    /api/products/categories  # Verfügbare Kategorien
+POST   /api/products         # Neues Produkt erstellen
+PUT    /api/products/:id     # Produkt aktualisieren
+DELETE /api/products/:id     # Produkt löschen
+```
+
+### 📋 Orders
+```http
+GET    /api/orders           # Alle Bestellungen auflisten
+GET    /api/orders/:id       # Bestellung Details
+POST   /api/orders           # Neue Bestellung erstellen
+PUT    /api/orders/:id       # Bestellung aktualisieren
+DELETE /api/orders/:id       # Bestellung löschen
+```
+
+### 🛒 Order Items
+```http
+GET    /api/order-items      # Alle Bestellartikel auflisten
+PUT    /api/order-items/:id  # Artikel Status aktualisieren
+DELETE /api/order-items/:id  # Artikel aus Bestellung entfernen
+```
+
+### 📊 Statistics (Admin only)
+```http
+GET    /api/statistics       # Allgemeine Statistiken
+POST   /api/statistics/export # Statistiken exportieren
+```
+
+### ❤️ Health Check
+```http
+GET    /health               # Server Status prüfen
+```
+
+## 🗄️ Datenbankschema
+
+### User
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  password  String
+  role      Role     @default(WAITER)
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+enum Role {
+  ADMIN
+  WAITER
+}
+```
+
+### Table
+```prisma
+model Table {
+  id                String   @id @default(cuid())
+  number            Int      @unique
+  status            TableStatus @default(FREE)
+  reservationName   String?
+  reservationPhone  String?
+  reservationDate   String?
+  reservationTime   String?
+  reservationGuests Int?
+  closedReason      String?
+  createdAt         DateTime @default(now())
+  orders            Order[]
+}
+
+enum TableStatus {
+  FREE
+  OCCUPIED
+  RESERVED
+  CLOSED
+}
+```
+
+### Product
+```prisma
+model Product {
+  id         String      @id @default(cuid())
+  name       String
+  price      Float
+  category   String
+  createdAt  DateTime    @default(now())
+  orderItems OrderItem[]
+}
+```
+
+### Order
+```prisma
+model Order {
+  id        String      @id @default(cuid())
+  status    OrderStatus @default(OPEN)
+  tableId   String
+  userId    String
+  createdAt DateTime    @default(now())
+  table     Table       @relation(fields: [tableId], references: [id])
+  user      User        @relation(fields: [userId], references: [id])
+  items     OrderItem[]
+}
+
+enum OrderStatus {
+  OPEN
+  PAID
+  CANCELLED
+}
+```
+
+### OrderItem
+```prisma
+model OrderItem {
+  id        String         @id @default(cuid())
+  quantity  Int
+  status    OrderItemStatus @default(PENDING)
+  orderId   String
+  productId String
+  createdAt DateTime       @default(now())
+  order     Order          @relation(fields: [orderId], references: [id])
+  product   Product        @relation(fields: [productId], references: [id])
+}
+
+enum OrderItemStatus {
+  PENDING
+  PREPARING
+  READY
+  SERVED
+}
+```
 
 ## 🔐 Authentifizierung
 
-Das Backend verwendet JWT-Token für die Authentifizierung. Token müssen im Authorization Header gesendet werden:
+### JWT Token Structure
+```json
+{
+  "userId": "cuid",
+  "name": "Benutzername",
+  "role": "ADMIN|WAITER",
+  "iat": 1234567890,
+  "exp": 1234567890
+}
+```
 
-\`\`\`
-Authorization: Bearer <token>
-\`\`\`
+### Middleware
+- **Authentication**: Prüft JWT Token in Authorization Header
+- **Authorization**: Rollen-basierte Zugriffskontrolle
+- **Rate Limiting**: Schutz vor Brute-Force-Attacken
 
-## 👥 Standardbenutzer
+### Passwort-Sicherheit
+- **bcryptjs**: Sichere Passwort-Hashes mit Salt
+- **Mindestlänge**: 6 Zeichen (konfigurierbar)
+- **Keine Klartext-Speicherung**: Nur Hashes in der Datenbank
 
-Nach dem Seeding sind folgende Benutzer verfügbar:
-- **Admin**: \`admin\` / \`123456\`
-- **Kellner**: \`kellner\` / \`123456\`
+## 🔧 Entwicklung
 
-## 🗄️ Datenbank
+### Scripts
+```bash
+npm run dev          # Development Server mit Hot Reload
+npm run build        # TypeScript Build für Production
+npm run start        # Production Server starten
+npm run db:generate  # Prisma Client generieren
+npm run db:push      # Schema zu Database pushen
+npm run db:seed      # Test-Daten laden
+npm run db:studio    # Prisma Studio öffnen
+npm run db:migrate   # Database Migration erstellen
+```
 
-Das Backend verwendet SQLite mit Prisma ORM. Die Datenbank wird automatisch erstellt und mit Testdaten gefüllt.
+### Development Workflow
+```bash
+# 1. Änderungen am Schema
+# prisma/schema.prisma bearbeiten
 
-## 🚀 Deployment
+# 2. Schema zu DB pushen
+npx prisma db push
 
-Für die Produktion:
+# 3. Client neu generieren
+npx prisma generate
 
-1. **Environment Variables setzen**:
-   \`\`\`bash
-   NODE_ENV=production
-   JWT_SECRET=<sicherer-production-key>
-   DATABASE_URL=<production-database-url>
-   \`\`\`
+# 4. Test-Daten neu laden (optional)
+npx prisma db seed
 
-2. **Build erstellen**:
-   \`\`\`bash
-   npm run build
-   \`\`\`
+# 5. Server neu starten (automatisch mit nodemon)
+```
 
-3. **Produktionsserver starten**:
-   \`\`\`bash
-   npm start
-   \`\`\`
+### Debugging
+```bash
+# Prisma Studio für Database GUI
+npx prisma studio
 
-## 📊 Health Check
+# Server Logs anzeigen
+npm run dev
 
-Das Backend bietet einen Health Check Endpoint:
-\`GET /health\` - Status des Servers
+# Database zurücksetzen
+rm prisma/dev.db
+npx prisma db push
+npx prisma db seed
+```
 
-## 🔒 Sicherheit
+### Code-Struktur
+```
+src/
+├── controllers/        # Business Logic
+│   ├── authController.ts
+│   ├── userController.ts
+│   ├── tableController.ts
+│   ├── productController.ts
+│   ├── orderController.ts
+│   ├── orderItemController.ts
+│   └── statisticsController.ts
+├── routes/            # API Route Definitionen
+│   ├── auth.ts
+│   ├── users.ts
+│   ├── tables.ts
+│   ├── products.ts
+│   ├── orders.ts
+│   ├── orderItems.ts
+│   └── statistics.ts
+├── middleware/        # Express Middleware
+│   ├── auth.ts       # JWT Authentifizierung
+│   ├── errorHandler.ts
+│   └── notFound.ts
+├── types/            # TypeScript Definitionen
+│   └── index.ts
+├── utils/            # Helper Funktionen
+│   ├── database.ts   # Prisma Client
+│   └── jwt.ts        # JWT Utilities
+└── server.ts         # Main Server File
+```
 
-- Rate Limiting (100 Requests/15min)
-- Helmet für Security Headers
-- CORS konfiguriert
-- Passwort-Hashing mit bcrypt
-- JWT Token Expiration
-- Input Validation
+## 🌐 Deployment
 
-## 📝 Lizenz
+### Production Build
+```bash
+# TypeScript kompilieren
+npm run build
 
-MIT License 
+# Production Dependencies installieren
+npm ci --only=production
+
+# Database für Production vorbereiten
+npx prisma db push
+npx prisma generate
+```
+
+### PM2 Configuration
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'orderman-backend',
+    script: 'dist/server.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'development',
+      PORT: 5000
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 5000
+    }
+  }]
+}
+```
+
+### Docker Setup
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+RUN npm run build
+
+EXPOSE 5000
+
+CMD ["npm", "start"]
+```
+
+### Environment Variables (Production)
+```env
+DATABASE_URL="file:./prisma/prod.db"
+JWT_SECRET=your-super-secure-production-jwt-secret-minimum-32-characters
+PORT=5000
+NODE_ENV=production
+FRONTEND_URL=https://your-domain.com
+```
+
+## 🐛 Troubleshooting
+
+### Häufige Probleme
+
+#### Database Connection Error
+```bash
+# Problem: Prisma kann nicht auf Database zugreifen
+# Lösung: Schema neu pushen
+npx prisma db push
+npx prisma generate
+```
+
+#### JWT Secret Error
+```bash
+# Problem: JWT_SECRET zu kurz oder nicht gesetzt
+# Lösung: Mindestens 32 Zeichen verwenden
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
+```
+
+#### Port bereits belegt
+```bash
+# Problem: Port 5000 bereits in Verwendung
+# Lösung: Prozess beenden oder anderen Port verwenden
+lsof -ti:5000 | xargs kill -9
+# oder PORT=5001 in .env setzen
+```
+
+#### TypeScript Compile Errors
+```bash
+# Problem: TypeScript Fehler beim Build
+# Lösung: Dependencies und Types aktualisieren
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Performance Tuning
+
+#### Database Optimierung
+```sql
+-- Indizes für häufige Queries
+CREATE INDEX idx_orders_table_id ON Order(tableId);
+CREATE INDEX idx_orders_status ON Order(status);
+CREATE INDEX idx_order_items_order_id ON OrderItem(orderId);
+```
+
+#### Memory Management
+```javascript
+// Prisma Connection Pool
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+})
+```
+
+### Monitoring
+```bash
+# Server Logs
+tail -f logs/server.log
+
+# PM2 Monitoring
+pm2 monit
+
+# Database Size
+du -h prisma/dev.db
+```
+
+## 📊 API Response Format
+
+### Success Response
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Optional success message"
+}
+```
+
+### Error Response
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "details": "Optional error details"
+}
+```
+
+### Pagination Response
+```json
+{
+  "success": true,
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 100,
+    "pages": 10
+  }
+}
+```
+
+## 🔒 Security Features
+
+- **JWT Authentication**: Sichere Token-basierte Authentifizierung
+- **bcrypt**: Passwort-Hashing mit Salt
+- **Helmet**: Security Headers setzen
+- **CORS**: Cross-Origin Request Schutz
+- **Rate Limiting**: Schutz vor Brute-Force-Attacken
+- **Input Validation**: Validierung aller Eingaben
+- **SQL Injection Protection**: Prisma ORM verhindert SQL Injection
+
+---
+
+**Backend entwickelt mit ⚡ Express.js und 💎 TypeScript** 

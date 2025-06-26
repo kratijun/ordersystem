@@ -4,15 +4,16 @@ import { prisma } from '@/utils/database';
 import { generateToken } from '@/utils/jwt';
 import { LoginRequest, AuthRequest } from '@/types';
 
-export const login = async (req: Request<{}, {}, LoginRequest>, res: Response) => {
+export const login = async (req: Request<{}, {}, LoginRequest>, res: Response): Promise<void> => {
   try {
     const { name, password } = req.body;
 
     if (!name || !password) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Name und Passwort sind erforderlich'
       });
+      return;
     }
 
     // Benutzer suchen
@@ -21,19 +22,21 @@ export const login = async (req: Request<{}, {}, LoginRequest>, res: Response) =
     });
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Ungültige Anmeldedaten'
       });
+      return;
     }
 
     // Passwort überprüfen
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Ungültige Anmeldedaten'
       });
+      return;
     }
 
     // Token generieren
@@ -63,22 +66,24 @@ export const login = async (req: Request<{}, {}, LoginRequest>, res: Response) =
   }
 };
 
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, password, role = 'WAITER' } = req.body;
 
     if (!name || !password) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Name und Passwort sind erforderlich'
       });
+      return;
     }
 
     if (!['ADMIN', 'WAITER'].includes(role)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Ungültige Rolle'
       });
+      return;
     }
 
     // Prüfen ob Benutzer bereits existiert
@@ -87,10 +92,11 @@ export const register = async (req: Request, res: Response) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Benutzername bereits vergeben'
       });
+      return;
     }
 
     // Passwort hashen
@@ -126,13 +132,14 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-export const me = async (req: AuthRequest, res: Response) => {
+export const me = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Nicht authentifiziert'
       });
+      return;
     }
 
     const user = await prisma.user.findUnique({
@@ -146,10 +153,11 @@ export const me = async (req: AuthRequest, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: 'Benutzer nicht gefunden'
       });
+      return;
     }
 
     res.json({

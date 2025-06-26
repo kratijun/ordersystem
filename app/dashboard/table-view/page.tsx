@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/auth-provider'
+import { tablesApi, productsApi, ordersApi } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -52,7 +53,7 @@ interface OrderItem {
 }
 
 export default function TableViewPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [tables, setTables] = useState<Table[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [selectedTable, setSelectedTable] = useState<Table | null>(null)
@@ -70,17 +71,14 @@ export default function TableViewPage() {
   const fetchData = async () => {
     try {
       const [tablesRes, productsRes] = await Promise.all([
-        fetch('/api/tables'),
-        fetch('/api/products')
+        tablesApi.getAll(),
+        productsApi.getAll()
       ])
 
-      const [tablesData, productsData] = await Promise.all([
-        tablesRes.json(),
-        productsRes.json()
-      ])
-
-      setTables(tablesData)
-      setProducts(productsData)
+      if (tablesRes.success && productsRes.success) {
+        setTables(tablesRes.data)
+        setProducts(productsRes.data)
+      }
     } catch (error) {
       console.error('Fehler beim Laden der Daten:', error)
     } finally {
@@ -100,9 +98,8 @@ export default function TableViewPage() {
 
   const fetchTableOrders = async (tableId: string) => {
     try {
-      const response = await fetch(`/api/orders?tableId=${tableId}`)
-      if (response.ok) {
-        const orders = await response.json()
+      const response = await ordersApi.getAll({ tableId })
+      if (response.success) {
         // Hier könnten wir die aktuellen Bestellungen anzeigen
       }
     } catch (error) {
@@ -143,27 +140,15 @@ export default function TableViewPage() {
 
     try {
       // Erst Tisch auf OCCUPIED setzen
-      await fetch(`/api/tables/${selectedTable.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: 'OCCUPIED' }),
-      })
+      await tablesApi.update(selectedTable.id, { status: 'OCCUPIED' })
 
       // Dann Bestellung erstellen
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tableId: selectedTable.id,
-          items: currentOrder
-        }),
+      const response = await ordersApi.create({
+        tableId: selectedTable.id,
+        items: currentOrder
       })
 
-      if (response.ok) {
+      if (response.success) {
         setCurrentOrder([])
         setSelectedTable(null)
         fetchData() // Daten neu laden

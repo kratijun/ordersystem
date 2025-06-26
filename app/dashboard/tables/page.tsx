@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/auth-provider'
+import { tablesApi } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -38,7 +39,7 @@ interface Table {
 }
 
 export default function TablesPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [tables, setTables] = useState<Table[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -64,10 +65,9 @@ export default function TablesPage() {
 
   const fetchTables = async () => {
     try {
-      const response = await fetch('/api/tables')
-      if (response.ok) {
-        const data = await response.json()
-        setTables(data)
+      const response = await tablesApi.getAll()
+      if (response.success) {
+        setTables(response.data)
       }
     } catch (error) {
       console.error('Fehler beim Laden der Tische:', error)
@@ -80,17 +80,11 @@ export default function TablesPage() {
     if (!newTable.number) return
 
     try {
-      const response = await fetch('/api/tables', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          number: parseInt(newTable.number)
-        }),
+      const response = await tablesApi.create({
+        number: parseInt(newTable.number)
       })
 
-      if (response.ok) {
+      if (response.success) {
         setNewTable({ number: '' })
         setShowAddForm(false)
         fetchTables()
@@ -102,18 +96,12 @@ export default function TablesPage() {
 
   const handleUpdateTableStatus = async (tableId: string, newStatus: string, additionalData = {}) => {
     try {
-      const response = await fetch(`/api/tables/${tableId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          status: newStatus,
-          ...additionalData
-        }),
+      const response = await tablesApi.update(tableId, { 
+        status: newStatus,
+        ...additionalData
       })
 
-      if (response.ok) {
+      if (response.success) {
         fetchTables()
         setShowReservationForm(null)
         setShowCloseForm(null)
@@ -163,11 +151,9 @@ export default function TablesPage() {
     }
 
     try {
-      const response = await fetch(`/api/tables/${tableId}`, {
-        method: 'DELETE',
-      })
+      const response = await tablesApi.delete(tableId)
 
-      if (response.ok) {
+      if (response.success) {
         fetchTables()
       }
     } catch (error) {
@@ -231,7 +217,7 @@ export default function TablesPage() {
             Verwalten Sie die Tische, Reservierungen und deren Status in Ihrem Restaurant.
           </p>
         </div>
-        {session?.user.role === 'ADMIN' && (
+        {user?.role === 'ADMIN' && (
           <Button onClick={() => setShowAddForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Tisch hinzufügen
@@ -389,7 +375,7 @@ export default function TablesPage() {
                   <TableIcon className="h-5 w-5" />
                   <span className="font-bold text-lg">Tisch {table.number}</span>
                 </div>
-                {session?.user.role === 'ADMIN' && (
+                {user?.role === 'ADMIN' && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -499,7 +485,7 @@ export default function TablesPage() {
                       Reservieren
                     </Button>
                   )}
-                  {table.status !== 'CLOSED' && session?.user.role === 'ADMIN' && (
+                  {table.status !== 'CLOSED' && user?.role === 'ADMIN' && (
                     <Button
                       size="sm"
                       variant="outline"

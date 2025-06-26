@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/auth-provider'
+import { tablesApi, productsApi, usersApi, ordersApi } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -37,7 +38,7 @@ interface RecentOrder {
 }
 
 export default function DashboardPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -50,18 +51,16 @@ export default function DashboardPage() {
     try {
       // Fetch all data in parallel
       const [tablesRes, productsRes, usersRes, ordersRes] = await Promise.all([
-        fetch('/api/tables'),
-        fetch('/api/products'),
-        fetch('/api/users'),
-        fetch('/api/orders')
+        tablesApi.getAll(),
+        productsApi.getAll(),
+        usersApi.getAll(),
+        ordersApi.getAll()
       ])
 
-      const [tables, products, users, orders] = await Promise.all([
-        tablesRes.json(),
-        productsRes.json(),
-        usersRes.json(),
-        ordersRes.json()
-      ])
+      const tables = tablesRes.data || []
+      const products = productsRes.data || []
+      const users = usersRes.data || []
+      const orders = ordersRes.data || []
 
       // Calculate statistics
       const occupiedTables = tables.filter((table: any) => table.status === 'OCCUPIED').length
@@ -71,7 +70,7 @@ export default function DashboardPage() {
       )
       
       const todayRevenue = todayOrders.reduce((sum: number, order: any) => {
-        return sum + order.items.reduce((itemSum: number, item: any) => {
+        return sum + (order.items || []).reduce((itemSum: number, item: any) => {
           return itemSum + (item.quantity * item.product.price)
         }, 0)
       }, 0)
@@ -95,14 +94,14 @@ export default function DashboardPage() {
         .slice(0, 5)
         .map((order: any) => ({
           id: order.id,
-          tableNumber: order.table.number,
-          userName: order.user.name,
+          tableNumber: order.table?.number || 0,
+          userName: order.user?.name || 'Unbekannt',
           status: order.status,
-          total: order.items.reduce((sum: number, item: any) => {
+          total: (order.items || []).reduce((sum: number, item: any) => {
             return sum + (item.quantity * item.product.price)
           }, 0),
           createdAt: order.createdAt,
-          itemCount: order.items.reduce((sum: number, item: any) => sum + item.quantity, 0)
+          itemCount: (order.items || []).reduce((sum: number, item: any) => sum + item.quantity, 0)
         }))
 
       setRecentOrders(recent)
@@ -135,7 +134,7 @@ export default function DashboardPage() {
       {/* Welcome Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">
-          Willkommen, {session?.user.name}!
+          Willkommen, {user?.name}!
         </h1>
         <p className="text-gray-600 mt-2">
           Hier ist eine Übersicht über Ihr Restaurant heute.
@@ -198,101 +197,94 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Orders */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Aktuelle Bestellungen
-            </CardTitle>
-            <CardDescription>
-              Die letzten 5 Bestellungen in Ihrem Restaurant
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Letzte Bestellungen</CardTitle>
+          <CardDescription>
+            Die 5 neuesten Bestellungen in Ihrem Restaurant
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentOrders.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">Keine Bestellungen vorhanden</p>
+          ) : (
             <div className="space-y-4">
-              {recentOrders.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">
-                  Keine aktuellen Bestellungen
-                </p>
-              ) : (
-                recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
+              {recentOrders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 font-semibold">
-                          {order.tableNumber}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Tisch {order.tableNumber}</p>
-                        <p className="text-sm text-gray-600">
-                          {order.userName} • {order.itemCount} Artikel
-                        </p>
+                        <TableIcon className="h-5 w-5 text-blue-600" />
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold">€{order.total.toFixed(2)}</p>
-                      {getStatusBadge(order.status)}
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        Tisch {order.tableNumber}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {order.userName} • {order.itemCount} Artikel
+                      </p>
                     </div>
                   </div>
-                ))
-              )}
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">
+                        €{order.total.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(order.createdAt).toLocaleTimeString('de-DE', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    {getStatusBadge(order.status)}
+                  </div>
+                </div>
+              ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Clock className="mr-2 h-5 w-5 text-orange-600" />
+              Offene Bestellungen
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{stats?.pendingOrders}</div>
+            <p className="text-sm text-gray-600">Benötigen Aufmerksamkeit</p>
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Schnellaktionen
+            <CardTitle className="flex items-center">
+              <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
+              Abgeschlossen
             </CardTitle>
-            <CardDescription>
-              Häufig verwendete Funktionen
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors"
-                onClick={() => window.location.href = '/dashboard/tables'}
-              >
-                <TableIcon className="h-6 w-6 text-blue-600 mb-2" />
-                <p className="font-medium">Tische verwalten</p>
-                <p className="text-sm text-gray-600">Status ändern</p>
-              </button>
+            <div className="text-2xl font-bold text-green-600">{stats?.completedOrders}</div>
+            <p className="text-sm text-gray-600">Heute bezahlt</p>
+          </CardContent>
+        </Card>
 
-              <button 
-                className="p-4 bg-green-50 hover:bg-green-100 rounded-lg text-left transition-colors"
-                onClick={() => window.location.href = '/dashboard/orders'}
-              >
-                <ShoppingCart className="h-6 w-6 text-green-600 mb-2" />
-                <p className="font-medium">Neue Bestellung</p>
-                <p className="text-sm text-gray-600">Bestellung aufnehmen</p>
-              </button>
-
-              <button 
-                className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg text-left transition-colors"
-                onClick={() => window.location.href = '/dashboard/kitchen'}
-              >
-                <AlertCircle className="h-6 w-6 text-orange-600 mb-2" />
-                <p className="font-medium">Küche</p>
-                <p className="text-sm text-gray-600">Offene Bestellungen</p>
-              </button>
-
-              {session?.user.role === 'ADMIN' && (
-                <button 
-                  className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg text-left transition-colors"
-                  onClick={() => window.location.href = '/dashboard/products'}
-                >
-                  <Package className="h-6 w-6 text-purple-600 mb-2" />
-                  <p className="font-medium">Produkte</p>
-                  <p className="text-sm text-gray-600">Speisekarte bearbeiten</p>
-                </button>
-              )}
-            </div>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-blue-600" />
+              Belegte Tische
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{stats?.occupiedTables}</div>
+            <p className="text-sm text-gray-600">Von {stats?.totalTables} Tischen</p>
           </CardContent>
         </Card>
       </div>

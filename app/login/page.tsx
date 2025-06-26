@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/auth-provider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,18 +22,12 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const result = await signIn('credentials', {
-        name,
-        password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setError('Ungültige Anmeldedaten')
+      const success = await login(name, password)
+      
+      if (success) {
+        router.push('/dashboard')
       } else {
-        // Session abrufen und basierend auf Rolle weiterleiten
-        const session = await getSession()
-          router.push('/dashboard')
+        setError('Ungültige Anmeldedaten')
       }
     } catch (error) {
       setError('Ein Fehler ist aufgetreten')

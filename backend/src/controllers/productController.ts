@@ -53,7 +53,7 @@ export const getProductCategories = async (req: AuthRequest, res: Response) => {
       }
     });
 
-    const categoryList = categories.map(p => p.category);
+    const categoryList = categories.map((p: { category: string }) => p.category);
 
     res.json({
       success: true,

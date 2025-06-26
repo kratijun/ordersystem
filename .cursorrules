@@ -1,0 +1,222 @@
+# Orderman System - Restaurant Bestellsystem
+
+## Projektübersicht
+Das Orderman System ist ein vollständiges Restaurant-Bestellsystem mit separatem Frontend (Next.js) und Backend (Express.js). Es ermöglicht Kellnern die Verwaltung von Tischbestellungen und Administratoren die Verwaltung von Benutzern, Produkten und Statistiken.
+
+## Architektur
+
+### Frontend (Port 3000)
+- **Framework**: Next.js 14 mit TypeScript
+- **Styling**: Tailwind CSS + shadcn/ui Komponenten
+- **Authentication**: Eigenes JWT-basiertes System (NICHT NextAuth)
+- **State Management**: React Context für Authentication
+- **API Client**: Eigene API-Funktionen in `lib/api.ts`
+
+### Backend (Port 5000)
+- **Framework**: Express.js mit TypeScript
+- **Database**: SQLite mit Prisma ORM
+- **Authentication**: JWT mit bcryptjs
+- **Security**: Helmet, CORS, Rate Limiting
+- **Structure**: Controller/Route/Middleware Pattern
+
+## Wichtige Dateien & Verzeichnisse
+
+### Frontend Struktur
+```
+app/
+├── login/page.tsx              # Login-Seite
+├── admin/page.tsx              # Admin Dashboard
+├── waiter/page.tsx             # Kellner Dashboard
+├── dashboard/                  # Admin-Bereich
+│   ├── layout.tsx             # Dashboard Layout
+│   ├── kitchen/page.tsx       # Küchen-Übersicht
+│   ├── orders/page.tsx        # Bestellverwaltung
+│   ├── users/page.tsx         # Benutzerverwaltung
+│   └── settings/page.tsx      # Einstellungen
+└── waiter/table/[id]/         # Kellner Tisch-Management
+    ├── page.tsx               # Tisch Details
+    ├── new-order/page.tsx     # Neue Bestellung
+    └── add-items/page.tsx     # Artikel hinzufügen
+
+components/
+├── auth-provider.tsx          # Authentication Context
+├── protected-route.tsx        # Route Protection
+└── ui/                        # shadcn/ui Komponenten
+
+lib/
+├── api.ts                     # API Client Funktionen
+└── utils.ts                   # Utility Funktionen
+```
+
+### Backend Struktur
+```
+backend/
+├── src/
+│   ├── server.ts              # Main Server File
+│   ├── controllers/           # Business Logic
+│   ├── routes/                # API Routes
+│   ├── middleware/            # Auth, Error Handling
+│   ├── types/                 # TypeScript Types
+│   └── utils/                 # Database, JWT Utils
+├── prisma/
+│   ├── schema.prisma          # Database Schema
+│   └── seed.ts                # Test Data
+└── package.json               # Dependencies
+```
+
+## Authentication System
+
+### Rollen
+- **ADMIN**: Vollzugriff auf alle Funktionen
+- **WAITER**: Zugriff auf Tisch- und Bestellverwaltung
+
+### Test-Benutzer
+- Administrator: `admin` / `123456`
+- Kellner: `kellner` / `123456`
+
+### Token Management
+- JWT-Token in localStorage gespeichert
+- Automatische Token-Validierung
+- Rollen-basierte Route Protection
+
+## API Endpunkte
+
+### Authentication
+- POST `/api/auth/login` - Benutzer-Login
+- POST `/api/auth/register` - Benutzer-Registrierung
+- GET `/api/auth/me` - Aktueller Benutzer
+
+### Users
+- GET `/api/users` - Alle Benutzer (Admin)
+- POST `/api/users` - Benutzer erstellen (Admin)
+- PUT `/api/users/:id` - Benutzer aktualisieren
+- DELETE `/api/users/:id` - Benutzer löschen (Admin)
+
+### Tables
+- GET `/api/tables` - Alle Tische
+- GET `/api/tables/:id` - Tisch Details
+- POST `/api/tables` - Tisch erstellen (Admin)
+- PUT `/api/tables/:id` - Tisch aktualisieren
+
+### Products
+- GET `/api/products` - Alle Produkte
+- POST `/api/products` - Produkt erstellen (Admin)
+- PUT `/api/products/:id` - Produkt aktualisieren (Admin)
+- DELETE `/api/products/:id` - Produkt löschen (Admin)
+
+### Orders
+- GET `/api/orders` - Alle Bestellungen
+- GET `/api/orders/:id` - Bestellung Details
+- POST `/api/orders` - Bestellung erstellen
+- PUT `/api/orders/:id` - Bestellung aktualisieren
+
+### Order Items
+- GET `/api/order-items` - Alle Bestellartikel
+- PUT `/api/order-items/:id` - Artikel Status aktualisieren
+
+## Wichtige Regeln & Konventionen
+
+### Code Style
+- **TypeScript überall** - Keine JavaScript-Dateien
+- **Funktionale Komponenten** mit Hooks
+- **Async/Await** statt Promises
+- **Destructuring** für Props und State
+- **Konsistente Namensgebung** (camelCase für Variablen, PascalCase für Komponenten)
+
+### Authentication
+- **NIEMALS NextAuth verwenden** - Eigenes JWT-System verwenden
+- **Immer ProtectedRoute verwenden** für geschützte Seiten
+- **useAuth Hook verwenden** für Benutzer-State
+- **API-Calls mit Token** über lib/api.ts
+
+### API Integration
+- **Alle API-Calls über lib/api.ts** - Keine direkten fetch-Calls
+- **Konsistente Fehlerbehandlung** mit try/catch
+- **Loading States** für bessere UX
+- **Optimistische Updates** wo möglich
+
+### UI/UX
+- **shadcn/ui Komponenten verwenden** - Konsistentes Design
+- **Responsive Design** - Mobile-first Approach
+- **Loading Spinner** für asynchrone Operationen
+- **Toast Notifications** für Feedback
+- **Confirmation Dialogs** für kritische Aktionen
+
+## Entwicklung
+
+### Frontend starten
+```bash
+npm run dev  # Port 3000
+```
+
+### Backend starten
+```bash
+cd backend
+npm run dev  # Port 5000
+```
+
+### Database Reset
+```bash
+cd backend
+npx prisma db push
+npx prisma db seed
+```
+
+## Deployment
+
+### Environment Variables
+- **Frontend**: `NEXT_PUBLIC_API_URL=http://localhost:5000/api`
+- **Backend**: `JWT_SECRET`, `DATABASE_URL`, `PORT`
+
+### VServer Deployment
+- Frontend und Backend getrennt deployen
+- Nginx als Reverse Proxy
+- PM2 für Process Management
+- SSL-Zertifikate einrichten
+
+## Häufige Probleme & Lösungen
+
+### NextAuth Fehler
+- **Problem**: NextAuth-Importe vorhanden
+- **Lösung**: Durch useAuth Hook ersetzen
+
+### API Fehler
+- **Problem**: Direkte fetch-Calls
+- **Lösung**: lib/api.ts Funktionen verwenden
+
+### Route Protection
+- **Problem**: Ungeschützte Admin-Routen
+- **Lösung**: ProtectedRoute mit requiredRole verwenden
+
+### Token Expiry
+- **Problem**: Abgelaufene JWT-Token
+- **Lösung**: Automatisches Logout in auth-provider.tsx
+
+## Debugging
+
+### Frontend
+- Browser DevTools Console
+- React Developer Tools
+- Network Tab für API-Calls
+
+### Backend
+- Server Logs in Terminal
+- Prisma Studio für Database
+- Postman für API-Tests
+
+## Weitere Entwicklung
+
+### Prioritäten
+1. Verbleibende Seiten reparieren
+2. UI/UX Verbesserungen
+3. Performance Optimierungen
+4. Testing implementieren
+5. Deployment automatisieren
+
+### Code Quality
+- TypeScript strict mode
+- ESLint Regeln befolgen
+- Komponenten dokumentieren
+- Error Boundaries verwenden
+
+Dieses System ist vollständig funktional und production-ready. Bei Fragen oder Problemen immer die bestehende Architektur und Konventionen befolgen! 

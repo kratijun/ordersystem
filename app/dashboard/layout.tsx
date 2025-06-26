@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useAuth } from '@/components/auth-provider'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+// import ProtectedRoute from '@/components/protected-route'
 import { 
   LayoutGrid, 
   ChefHat, 
@@ -26,37 +26,9 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { data: session, status } = useSession()
-  const router = useRouter()
+  const { user, logout } = useAuth()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  // Authentifizierungsprüfung
-  useEffect(() => {
-    if (status === 'loading') return // Noch am Laden
-
-    if (status === 'unauthenticated') {
-      router.push('/login')
-      return
-    }
-  }, [status, router])
-
-  // Loading-Zustand anzeigen, während die Session geladen wird
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Laden...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Wenn nicht authentifiziert, zeige nichts an (Weiterleitung erfolgt bereits)
-  if (status === 'unauthenticated') {
-    return null
-  }
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutGrid, roles: ['ADMIN', 'WAITER'] },
@@ -71,7 +43,7 @@ export default function DashboardLayout({
   ]
 
   const filteredNavigation = navigation.filter(item => 
-    item.roles.includes(session?.user?.role || '')
+    item.roles.includes(user?.role || '')
   )
 
   const isActive = (href: string) => {
@@ -142,14 +114,14 @@ export default function DashboardLayout({
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">
-                    {session?.user?.name?.charAt(0).toUpperCase()}
+                    {user?.name?.charAt(0).toUpperCase()}
                   </span>
                 </div>
               </div>
               <div className="ml-3 min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900 truncate">{session?.user?.name}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
                 <p className="text-xs text-gray-500">
-                  {session?.user?.role === 'ADMIN' ? 'Administrator' : 'Kellner'}
+                  {user?.role === 'ADMIN' ? 'Administrator' : 'Kellner'}
                 </p>
               </div>
             </div>
@@ -157,7 +129,7 @@ export default function DashboardLayout({
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={logout}
             >
               <LogOut className="mr-2 h-4 w-4" />
               Abmelden

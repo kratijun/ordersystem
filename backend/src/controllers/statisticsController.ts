@@ -43,8 +43,8 @@ export const getStatistics = async (req: AuthRequest, res: Response) => {
       }
     });
 
-    const totalRevenue = paidOrdersWithItems.reduce((sum, order) => {
-      return sum + order.items.reduce((orderSum, item) => {
+    const totalRevenue = paidOrdersWithItems.reduce((sum: number, order: any) => {
+      return sum + order.items.reduce((orderSum: number, item: any) => {
         return orderSum + (item.quantity * item.product.price);
       }, 0);
     }, 0);
@@ -64,7 +64,7 @@ export const getStatistics = async (req: AuthRequest, res: Response) => {
       }
     });
 
-    const productStats = orderItems.reduce((acc, item) => {
+    const productStats = orderItems.reduce((acc: any, item: any) => {
       const productId = item.product.id;
       if (!acc[productId]) {
         acc[productId] = {
@@ -101,9 +101,9 @@ export const getStatistics = async (req: AuthRequest, res: Response) => {
       }
     });
 
-    const revenueByDay = dailyRevenue.reduce((acc, order) => {
+    const revenueByDay = dailyRevenue.reduce((acc: any, order: any) => {
       const date = order.createdAt.toISOString().split('T')[0];
-      const orderRevenue = order.items.reduce((sum, item) => {
+      const orderRevenue = order.items.reduce((sum: number, item: any) => {
         return sum + (item.quantity * item.product.price);
       }, 0);
 
@@ -120,7 +120,7 @@ export const getStatistics = async (req: AuthRequest, res: Response) => {
     }, {} as any);
 
     // Kategorie-Statistiken
-    const categoryStats = orderItems.reduce((acc, item) => {
+    const categoryStats = orderItems.reduce((acc: any, item: any) => {
       const category = item.product.category;
       if (!acc[category]) {
         acc[category] = {
@@ -194,9 +194,9 @@ export const exportStatistics = async (req: AuthRequest, res: Response) => {
           }
         });
 
-        data = dailyOrders.reduce((acc, order) => {
+        data = dailyOrders.reduce((acc: any, order: any) => {
           const date = order.createdAt.toISOString().split('T')[0];
-          const orderRevenue = order.items.reduce((sum, item) => {
+          const orderRevenue = order.items.reduce((sum: number, item: any) => {
             return sum + (item.quantity * item.product.price);
           }, 0);
 
@@ -228,7 +228,7 @@ export const exportStatistics = async (req: AuthRequest, res: Response) => {
           }
         });
 
-        const productStats = orderItems.reduce((acc, item) => {
+        const productStats = orderItems.reduce((acc: any, item: any) => {
           const productId = item.product.id;
           if (!acc[productId]) {
             acc[productId] = {
@@ -260,7 +260,7 @@ export const exportStatistics = async (req: AuthRequest, res: Response) => {
           }
         });
 
-        const categoryStats = categoryItems.reduce((acc, item) => {
+        const categoryStats = categoryItems.reduce((acc: any, item: any) => {
           const category = item.product.category;
           if (!acc[category]) {
             acc[category] = {

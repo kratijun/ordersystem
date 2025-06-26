@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { AuthUser, JwtPayload } from '@/types';
 
 export const generateToken = (user: AuthUser): string => {
@@ -13,9 +13,12 @@ export const generateToken = (user: AuthUser): string => {
     role: user.role
   };
 
-  return jwt.sign(payload, secret, {
+  const options: SignOptions = {
+    // @ts-ignore
     expiresIn: process.env.JWT_EXPIRES_IN || '24h'
-  });
+  };
+
+  return jwt.sign(payload, secret, options);
 };
 
 export const verifyToken = (token: string): JwtPayload => {
@@ -33,7 +36,10 @@ export const generateRefreshToken = (userId: string): string => {
     throw new Error('JWT_REFRESH_SECRET nicht konfiguriert');
   }
 
-  return jwt.sign({ userId }, secret, {
+  const options: SignOptions = {
+    // @ts-ignore
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
-  });
+  };
+
+  return jwt.sign({ userId }, secret, options);
 }; 

@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/auth-provider'
+import { ordersApi, orderItemsApi } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import ProtectedRoute from '@/components/protected-route'
 import { 
   ChefHat, 
   Clock, 
@@ -34,7 +36,7 @@ interface OrderItem {
 }
 
 export default function KitchenPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -47,15 +49,15 @@ export default function KitchenPage() {
 
   const fetchOrderItems = async () => {
     try {
-      const response = await fetch('/api/orders')
-      if (response.ok) {
-        const orders = await response.json()
+      const response = await ordersApi.getAll()
+      if (response.success) {
+        const orders = response.data || []
         
         // Extract all order items from open orders
         const allOrderItems: OrderItem[] = []
         orders.forEach((order: any) => {
           if (order.status === 'OPEN') {
-            order.items.forEach((item: any) => {
+            (order.items || []).forEach((item: any) => {
               allOrderItems.push({
                 ...item,
                 order: {
@@ -85,15 +87,9 @@ export default function KitchenPage() {
 
   const handleUpdateItemStatus = async (itemId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/order-items/${itemId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      })
+      const response = await orderItemsApi.updateStatus(itemId, newStatus)
 
-      if (response.ok) {
+      if (response.success) {
         fetchOrderItems()
       }
     } catch (error) {
@@ -178,123 +174,121 @@ export default function KitchenPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Küche</h1>
-          <p className="text-gray-600 mt-2">
-            Übersicht über alle zu bereitenden Bestellungen.
-          </p>
+    <ProtectedRoute>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Küche</h1>
+            <p className="text-gray-600 mt-2">
+              Übersicht über alle zu bereitenden Bestellungen.
+            </p>
+          </div>
+          <Button onClick={fetchOrderItems} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Aktualisieren
+          </Button>
         </div>
-        <Button onClick={fetchOrderItems} variant="outline">
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Aktualisieren
-        </Button>
-      </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-gray-600" />
-              <div>
-                <p className="text-sm font-medium">Gesamt Artikel</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-yellow-600" />
-              <div>
-                <p className="text-sm font-medium">Wartend</p>
-                <p className="text-2xl font-bold">{stats.ordered}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <ChefHat className="h-5 w-5 text-orange-600" />
-              <div>
-                <p className="text-sm font-medium">In Zubereitung</p>
-                <p className="text-2xl font-bold">{stats.preparing}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm font-medium">Fertig</p>
-                <p className="text-2xl font-bold">{stats.ready}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Orders */}
-      {Object.keys(groupedItems).length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <ChefHat className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine offenen Bestellungen</h3>
-            <p className="text-gray-600">Alle Bestellungen sind abgearbeitet!</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {Object.values(groupedItems).map((group: any) => (
-            <Card 
-              key={group.orderId} 
-              className={`border-l-4 ${getUrgencyClass(group.createdAt)}`}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">Tisch {group.tableNumber}</CardTitle>
-                  <Badge variant="outline" className="text-xs">
-                    {getTimeSinceOrder(group.createdAt)}
-                  </Badge>
+        {/* Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <ChefHat className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium">Gesamt Artikel</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
-                <CardDescription>
-                  Kellner: {group.userName} • {new Date(group.createdAt).toLocaleTimeString('de-DE')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-yellow-600" />
+                <div>
+                  <p className="text-sm font-medium">Bestellt</p>
+                  <p className="text-2xl font-bold">{stats.ordered}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-orange-600" />
+                <div>
+                  <p className="text-sm font-medium">In Zubereitung</p>
+                  <p className="text-2xl font-bold">{stats.preparing}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium">Fertig</p>
+                  <p className="text-2xl font-bold">{stats.ready}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Order Items */}
+        {Object.keys(groupedItems).length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <ChefHat className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Keine offenen Bestellungen</h3>
+              <p className="text-gray-600">Alle Bestellungen sind abgearbeitet!</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {Object.values(groupedItems).map((group: any) => (
+              <Card key={`${group.orderId}-${group.tableNumber}`} className={`border-l-4 ${getUrgencyClass(group.createdAt)}`}>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">Tisch {group.tableNumber}</CardTitle>
+                      <CardDescription>
+                        Bestellt von {group.userName} • {getTimeSinceOrder(group.createdAt)} her
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {group.items.length} Artikel
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   {group.items.map((item: OrderItem) => (
-                    <div 
-                      key={item.id} 
-                      className={`p-3 rounded-lg border-l-4 ${getCategoryColor(item.product.category)} bg-gray-50`}
-                    >
+                    <div key={item.id} className={`p-3 rounded-lg border-l-4 ${getCategoryColor(item.product.category)} bg-gray-50`}>
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <h4 className="font-medium">{item.product.name}</h4>
                           <p className="text-sm text-gray-600">
-                            {item.quantity}x • {item.product.category}
+                            {item.product.category} • Menge: {item.quantity}
                           </p>
                         </div>
                         {getStatusBadge(item.status)}
                       </div>
                       
-                      <div className="flex space-x-2 mt-2">
+                      <div className="flex space-x-2 mt-3">
                         {item.status === 'ORDERED' && (
                           <Button
                             size="sm"
+                            variant="outline"
                             onClick={() => handleUpdateItemStatus(item.id, 'PREPARING')}
-                            className="bg-orange-600 hover:bg-orange-700"
+                            className="text-orange-600 border-orange-200 hover:bg-orange-50"
                           >
+                            <AlertCircle className="mr-1 h-3 w-3" />
                             Zubereitung starten
                           </Button>
                         )}
@@ -302,28 +296,30 @@ export default function KitchenPage() {
                         {item.status === 'PREPARING' && (
                           <Button
                             size="sm"
+                            variant="outline"
                             onClick={() => handleUpdateItemStatus(item.id, 'READY')}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="text-green-600 border-green-200 hover:bg-green-50"
                           >
-                            Als fertig markieren
+                            <CheckCircle className="mr-1 h-3 w-3" />
+                            Fertig melden
                           </Button>
                         )}
                         
                         {item.status === 'READY' && (
-                          <div className="flex items-center text-green-600 text-sm">
-                            <CheckCircle className="h-4 w-4 mr-1" />
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                            <CheckCircle className="mr-1 h-3 w-3" />
                             Bereit zum Servieren
-                          </div>
+                          </Badge>
                         )}
                       </div>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </ProtectedRoute>
   )
 } 

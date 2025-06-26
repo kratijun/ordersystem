@@ -1,14 +1,36 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+'use client'
 
-export default async function Home() {
-  const session = await getServerSession(authOptions)
+import { useEffect } from 'react'
+import { useAuth } from '@/components/auth-provider'
+import { useRouter } from 'next/navigation'
 
-  if (!session) {
-    redirect('/login')
+export default function Home() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/login')
+      } else {
+        // Weiterleitung zum Dashboard für alle authentifizierten Benutzer
+        router.push('/dashboard')
+      }
+    }
+  }, [user, loading, router])
+
+  // Loading-Zustand anzeigen
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Lädt...</p>
+        </div>
+      </div>
+    )
   }
 
-  // Weiterleitung zum neuen Dashboard für alle authentifizierten Benutzer
-  redirect('/dashboard')
+  // Während der Weiterleitung nichts anzeigen
+  return null
 } 
