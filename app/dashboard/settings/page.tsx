@@ -82,8 +82,8 @@ export default function SettingsPage() {
   const fetchUsers = async () => {
     try {
       const response = await usersApi.getAll()
-      if (response.success) {
-        setUsers(response.data || [])
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
+        setUsers((response as unknown as { data: User[] }).data || [])
       }
     } catch (error) {
       console.error('Fehler beim Laden der Benutzer:', error)
@@ -111,7 +111,7 @@ export default function SettingsPage() {
 
       const response = await usersApi.update(currentUser.id, updateData)
       
-      if (response.success) {
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
         // Update local user state
         updateUser({
           ...currentUser,
@@ -148,7 +148,7 @@ export default function SettingsPage() {
 
     try {
       const response = await usersApi.delete(userId)
-      if (response.success) {
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
         fetchUsers()
         alert('Benutzer erfolgreich gelöscht!')
       } else {

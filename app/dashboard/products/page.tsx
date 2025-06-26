@@ -56,8 +56,8 @@ export default function ProductsPage() {
   const fetchProducts = async () => {
     try {
       const response = await productsApi.getAll()
-      if (response.success) {
-        setProducts(response.data)
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
+        setProducts((response as unknown as { data: Product[] }).data)
       }
     } catch (error) {
       console.error('Fehler beim Laden der Produkte:', error)
@@ -93,10 +93,10 @@ export default function ProductsPage() {
         category: newProduct.category
       })
 
-      if (response.success) {
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
         setNewProduct({ name: '', price: '', category: '' })
         setShowAddForm(false)
-        fetchProducts()
+        void fetchProducts()
       }
     } catch (error) {
       console.error('Fehler beim Hinzufügen des Produkts:', error)
@@ -113,9 +113,9 @@ export default function ProductsPage() {
         category: editingProduct.category
       })
 
-      if (response.success) {
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
         setEditingProduct(null)
-        fetchProducts()
+        void fetchProducts()
       }
     } catch (error) {
       console.error('Fehler beim Bearbeiten des Produkts:', error)
@@ -130,8 +130,8 @@ export default function ProductsPage() {
     try {
       const response = await productsApi.delete(productId)
 
-      if (response.success) {
-        fetchProducts()
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
+        void fetchProducts()
       }
     } catch (error) {
       console.error('Fehler beim Löschen des Produkts:', error)

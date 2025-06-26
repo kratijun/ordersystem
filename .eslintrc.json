@@ -1,0 +1,75 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    // TypeScript Regeln
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/explicit-function-return-type": "warn",
+    "@typescript-eslint/no-inferrable-types": "warn",
+    "@typescript-eslint/no-empty-function": "warn",
+    "@typescript-eslint/no-var-requires": "error",
+    "@typescript-eslint/prefer-as-const": "warn",
+    "@typescript-eslint/no-non-null-assertion": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
+    
+    // React Regeln
+    "react-hooks/exhaustive-deps": "error",
+    "react/jsx-key": "error",
+    "react/no-unescaped-entities": "warn",
+    "react/display-name": "warn",
+    
+    // JavaScript Regeln
+    "no-console": "warn",
+    "no-debugger": "error",
+    "no-alert": "warn",
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-unused-vars": "off", // TypeScript Regel wird verwendet
+    "no-undef": "error",
+    "no-duplicate-imports": "error",
+    "no-unreachable": "error",
+    "no-constant-condition": "warn",
+    "no-empty": "warn",
+    "no-extra-semi": "error",
+    "no-func-assign": "error",
+    "no-irregular-whitespace": "error",
+    "no-sparse-arrays": "warn",
+    "use-isnan": "error",
+    "valid-typeof": "error",
+    
+    // Code Style
+    "eqeqeq": "error",
+    "curly": "warn",
+    "dot-notation": "warn",
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-wrappers": "error",
+    "no-throw-literal": "error",
+    "no-fallthrough": "error",
+    "no-return-await": "warn",
+    
+    // Import/Export
+    "import/no-unresolved": "off", // Next.js handled
+    "import/order": "warn",
+    "import/no-duplicates": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.js", "*.jsx"],
+      "rules": {
+        "@typescript-eslint/explicit-function-return-type": "off",
+        "@typescript-eslint/no-var-requires": "off"
+      }
+    }
+  ]
+} 

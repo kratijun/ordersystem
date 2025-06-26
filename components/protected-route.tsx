@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from './auth-provider'
 
@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
   requiredRole?: 'ADMIN' | 'WAITER'
 }
 
-export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps): React.ReactElement | null {
   const { user, loading } = useAuth()
   const router = useRouter()
 

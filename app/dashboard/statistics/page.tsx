@@ -100,9 +100,10 @@ export default function StatisticsPage() {
         productsApi.getAll()
       ])
 
-      if (ordersRes.success && productsRes.success) {
-        setOrders(ordersRes.data)
-        setProducts(productsRes.data)
+      if (ordersRes && typeof ordersRes === 'object' && 'success' in ordersRes && ordersRes.success &&
+          productsRes && typeof productsRes === 'object' && 'success' in productsRes && productsRes.success) {
+        setOrders((ordersRes as unknown as { data: Order[] }).data)
+        setProducts((productsRes as unknown as { data: Product[] }).data)
       }
     } catch (error) {
       console.error('Fehler beim Laden der Daten:', error)

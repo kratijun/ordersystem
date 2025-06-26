@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useAuth } from '@/components/auth-provider'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -17,7 +17,6 @@ import {
   Menu, 
   X,
   BarChart3,
-  UserCheck,
   Eye
 } from 'lucide-react'
 

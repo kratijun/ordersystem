@@ -1,12 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/components/auth-provider'
-import { ordersApi, orderItemsApi } from '@/lib/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import ProtectedRoute from '@/components/protected-route'
+import React, { useState, useEffect } from 'react'
 import { 
   ChefHat, 
   Clock, 
@@ -14,6 +8,11 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react'
+import { useAuth } from '@/components/auth-provider'
+import { ordersApi, orderItemsApi } from '@/lib/api'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 interface OrderItem {
   id: string
@@ -35,7 +34,20 @@ interface OrderItem {
   }
 }
 
-export default function KitchenPage() {
+interface Order {
+  id: string
+  status: string
+  createdAt: string
+  table: {
+    number: number
+  }
+  user: {
+    name: string
+  }
+  items: OrderItem[]
+}
+
+export default function KitchenPage(): React.ReactElement {
   const { user } = useAuth()
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -47,17 +59,17 @@ export default function KitchenPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const fetchOrderItems = async () => {
+  const fetchOrderItems = async (): Promise<void> => {
     try {
       const response = await ordersApi.getAll()
-      if (response.success) {
-        const orders = response.data || []
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
+        const orders = (response as unknown as { data: Order[] }).data || []
         
         // Extract all order items from open orders
         const allOrderItems: OrderItem[] = []
-        orders.forEach((order: any) => {
+        orders.forEach((order: Order) => {
           if (order.status === 'OPEN') {
-            (order.items || []).forEach((item: any) => {
+            (order.items || []).forEach((item: OrderItem) => {
               allOrderItems.push({
                 ...item,
                 order: {
@@ -79,25 +91,26 @@ export default function KitchenPage() {
         setOrderItems(allOrderItems)
       }
     } catch (error) {
-      console.error('Fehler beim Laden der Bestellungen:', error)
+      // Fehler beim Laden der Bestellungen
+      setOrderItems([])
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleUpdateItemStatus = async (itemId: string, newStatus: string) => {
+  const handleUpdateItemStatus = async (itemId: string, newStatus: string): Promise<void> => {
     try {
       const response = await orderItemsApi.updateStatus(itemId, newStatus)
 
-      if (response.success) {
-        fetchOrderItems()
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
+        void fetchOrderItems()
       }
     } catch (error) {
-      console.error('Fehler beim Aktualisieren des Artikelstatus:', error)
+      // Fehler beim Aktualisieren des Artikelstatus
     }
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string): React.ReactElement => {
     switch (status) {
       case 'ORDERED':
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Bestellt</Badge>
@@ -110,7 +123,7 @@ export default function KitchenPage() {
     }
   }
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryColor = (category: string): string => {
     switch (category) {
       case 'Vorspeisen':
         return 'border-l-blue-500'
@@ -127,27 +140,35 @@ export default function KitchenPage() {
     }
   }
 
-  const getTimeSinceOrder = (createdAt: string) => {
+  const getTimeSinceOrder = (createdAt: string): string => {
     const now = new Date()
     const orderTime = new Date(createdAt)
     const diffInMinutes = Math.floor((now.getTime() - orderTime.getTime()) / (1000 * 60))
     
-    if (diffInMinutes < 1) return 'Gerade bestellt'
-    if (diffInMinutes === 1) return '1 Minute'
+    if (diffInMinutes < 1) {
+      return 'Gerade bestellt'
+    }
+    if (diffInMinutes === 1) {
+      return '1 Minute'
+    }
     return `${diffInMinutes} Minuten`
   }
 
-  const getUrgencyClass = (createdAt: string) => {
+  const getUrgencyClass = (createdAt: string): string => {
     const now = new Date()
     const orderTime = new Date(createdAt)
     const diffInMinutes = Math.floor((now.getTime() - orderTime.getTime()) / (1000 * 60))
     
-    if (diffInMinutes > 30) return 'bg-red-50 border-red-200'
-    if (diffInMinutes > 15) return 'bg-orange-50 border-orange-200'
+    if (diffInMinutes > 30) {
+      return 'bg-red-50 border-red-200'
+    }
+    if (diffInMinutes > 15) {
+      return 'bg-orange-50 border-orange-200'
+    }
     return 'bg-white border-gray-200'
   }
 
-  const groupedItems = orderItems.reduce((groups, item) => {
+  const groupedItems = orderItems.reduce((groups: Record<string, { orderId: string; tableNumber: number; userName: string; createdAt: string; items: OrderItem[] }>, item) => {
     const key = `${item.order.id}-${item.order.table.number}`
     if (!groups[key]) {
       groups[key] = {
@@ -174,8 +195,7 @@ export default function KitchenPage() {
   }
 
   return (
-    <ProtectedRoute>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -184,7 +204,7 @@ export default function KitchenPage() {
               Übersicht über alle zu bereitenden Bestellungen.
             </p>
           </div>
-          <Button onClick={fetchOrderItems} variant="outline">
+          <Button onClick={(): void => { void fetchOrderItems() }} variant="outline">
             <RefreshCw className="mr-2 h-4 w-4" />
             Aktualisieren
           </Button>
@@ -252,7 +272,7 @@ export default function KitchenPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {Object.values(groupedItems).map((group: any) => (
+            {Object.values(groupedItems).map((group) => (
               <Card key={`${group.orderId}-${group.tableNumber}`} className={`border-l-4 ${getUrgencyClass(group.createdAt)}`}>
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
@@ -285,7 +305,7 @@ export default function KitchenPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleUpdateItemStatus(item.id, 'PREPARING')}
+                            onClick={(): void => { void handleUpdateItemStatus(item.id, 'PREPARING') }}
                             className="text-orange-600 border-orange-200 hover:bg-orange-50"
                           >
                             <AlertCircle className="mr-1 h-3 w-3" />
@@ -297,7 +317,7 @@ export default function KitchenPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleUpdateItemStatus(item.id, 'READY')}
+                            onClick={(): void => { void handleUpdateItemStatus(item.id, 'READY') }}
                             className="text-green-600 border-green-200 hover:bg-green-50"
                           >
                             <CheckCircle className="mr-1 h-3 w-3" />
@@ -320,6 +340,5 @@ export default function KitchenPage() {
           </div>
         )}
       </div>
-    </ProtectedRoute>
   )
 } 

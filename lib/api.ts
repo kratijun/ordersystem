@@ -10,9 +10,6 @@ const getApiBaseUrl = (): string => {
 
   // In Production: Automatische Erkennung basierend auf der aktuellen Domain
   if (typeof window !== 'undefined') {
-    // Client-side: Basierend auf der aktuellen Domain
-    const { protocol, hostname, port } = window.location;
-    
     // Wenn explizite API URL gesetzt ist, diese verwenden
     if (process.env.NEXT_PUBLIC_API_URL) {
       return process.env.NEXT_PUBLIC_API_URL;
@@ -32,7 +29,7 @@ const API_BASE_URL = getApiBaseUrl();
 const apiRequest = async (
   endpoint: string,
   options: RequestInit = {}
-): Promise<any> => {
+): Promise<unknown> => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   
   const url = `${API_BASE_URL}${endpoint}`;
@@ -73,52 +70,63 @@ const apiRequest = async (
 
 // Authentication API
 export const authApi = {
-  login: async (credentials: { name: string; password: string }) => {
+  login: async (credentials: { name: string; password: string }): Promise<unknown> => {
     return apiRequest('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
   },
 
-  register: async (userData: { name: string; password: string; role?: string }) => {
+  register: async (userData: { name: string; password: string; role?: string }): Promise<unknown> => {
     return apiRequest('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   },
 
-  getCurrentUser: async () => {
+  getCurrentUser: async (): Promise<unknown> => {
     return apiRequest('/auth/me');
+  },
+
+  me: async (): Promise<unknown> => {
+    return apiRequest('/auth/me');
+  },
+
+  logout: (): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user');
+    }
   },
 };
 
 // Users API
 export const usersApi = {
-  getAll: async () => {
+  getAll: async (): Promise<unknown> => {
     return apiRequest('/users');
   },
 
-  create: async (userData: { name: string; password: string; role: string }) => {
+  create: async (userData: { name: string; password: string; role: string }): Promise<unknown> => {
     return apiRequest('/users', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   },
 
-  update: async (id: string, userData: { name?: string; password?: string; role?: string }) => {
+  update: async (id: string, userData: { name?: string; password?: string; role?: string }): Promise<unknown> => {
     return apiRequest(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(userData),
     });
   },
 
-  delete: async (id: string) => {
+  delete: async (id: string): Promise<unknown> => {
     return apiRequest(`/users/${id}`, {
       method: 'DELETE',
     });
   },
 
-  updateProfile: async (userData: { name?: string; password?: string }) => {
+  updateProfile: async (userData: { name?: string; password?: string }): Promise<unknown> => {
     return apiRequest('/users/profile', {
       method: 'PUT',
       body: JSON.stringify(userData),
@@ -128,29 +136,29 @@ export const usersApi = {
 
 // Tables API
 export const tablesApi = {
-  getAll: async () => {
+  getAll: async (): Promise<unknown> => {
     return apiRequest('/tables');
   },
 
-  getById: async (id: string) => {
+  getById: async (id: string): Promise<unknown> => {
     return apiRequest(`/tables/${id}`);
   },
 
-  create: async (tableData: { number: number }) => {
+  create: async (tableData: { number: number }): Promise<unknown> => {
     return apiRequest('/tables', {
       method: 'POST',
       body: JSON.stringify(tableData),
     });
   },
 
-  update: async (id: string, tableData: any) => {
+  update: async (id: string, tableData: Record<string, unknown>): Promise<unknown> => {
     return apiRequest(`/tables/${id}`, {
       method: 'PUT',
       body: JSON.stringify(tableData),
     });
   },
 
-  delete: async (id: string) => {
+  delete: async (id: string): Promise<unknown> => {
     return apiRequest(`/tables/${id}`, {
       method: 'DELETE',
     });
@@ -162,14 +170,14 @@ export const tablesApi = {
     reservationDate: string;
     reservationTime: string;
     reservationGuests: number;
-  }) => {
+  }): Promise<unknown> => {
     return apiRequest(`/tables/${id}/reserve`, {
       method: 'PUT',
       body: JSON.stringify(reservationData),
     });
   },
 
-  close: async (id: string, reason?: string) => {
+  close: async (id: string, reason?: string): Promise<unknown> => {
     return apiRequest(`/tables/${id}/close`, {
       method: 'PUT',
       body: JSON.stringify({ closedReason: reason }),
@@ -179,34 +187,38 @@ export const tablesApi = {
 
 // Products API
 export const productsApi = {
-  getAll: async (params?: { category?: string; search?: string }) => {
+  getAll: async (params?: { category?: string; search?: string }): Promise<unknown> => {
     const searchParams = new URLSearchParams();
-    if (params?.category) searchParams.append('category', params.category);
-    if (params?.search) searchParams.append('search', params.search);
+    if (params?.category) {
+      searchParams.append('category', params.category);
+    }
+    if (params?.search) {
+      searchParams.append('search', params.search);
+    }
     
     const query = searchParams.toString();
     return apiRequest(`/products${query ? `?${query}` : ''}`);
   },
 
-  getCategories: async () => {
+  getCategories: async (): Promise<unknown> => {
     return apiRequest('/products/categories');
   },
 
-  create: async (productData: { name: string; price: number; category: string }) => {
+  create: async (productData: { name: string; price: number; category: string }): Promise<unknown> => {
     return apiRequest('/products', {
       method: 'POST',
       body: JSON.stringify(productData),
     });
   },
 
-  update: async (id: string, productData: { name?: string; price?: number; category?: string }) => {
+  update: async (id: string, productData: { name?: string; price?: number; category?: string }): Promise<unknown> => {
     return apiRequest(`/products/${id}`, {
       method: 'PUT',
       body: JSON.stringify(productData),
     });
   },
 
-  delete: async (id: string) => {
+  delete: async (id: string): Promise<unknown> => {
     return apiRequest(`/products/${id}`, {
       method: 'DELETE',
     });
@@ -215,47 +227,51 @@ export const productsApi = {
 
 // Orders API
 export const ordersApi = {
-  getAll: async (params?: { status?: string; tableId?: string }) => {
+  getAll: async (params?: { status?: string; tableId?: string }): Promise<unknown> => {
     const searchParams = new URLSearchParams();
-    if (params?.status) searchParams.append('status', params.status);
-    if (params?.tableId) searchParams.append('tableId', params.tableId);
+    if (params?.status) {
+      searchParams.append('status', params.status);
+    }
+    if (params?.tableId) {
+      searchParams.append('tableId', params.tableId);
+    }
     
     const query = searchParams.toString();
     return apiRequest(`/orders${query ? `?${query}` : ''}`);
   },
 
-  getById: async (id: string) => {
+  getById: async (id: string): Promise<unknown> => {
     return apiRequest(`/orders/${id}`);
   },
 
-  create: async (orderData: { tableId: string; items: Array<{ productId: string; quantity: number }> }) => {
+  create: async (orderData: { tableId: string; items: Array<{ productId: string; quantity: number }> }): Promise<unknown> => {
     return apiRequest('/orders', {
       method: 'POST',
       body: JSON.stringify(orderData),
     });
   },
 
-  update: async (id: string, orderData: any) => {
+  update: async (id: string, orderData: Record<string, unknown>): Promise<unknown> => {
     return apiRequest(`/orders/${id}`, {
       method: 'PUT',
       body: JSON.stringify(orderData),
     });
   },
 
-  updateStatus: async (id: string, status: string) => {
+  updateStatus: async (id: string, status: string): Promise<unknown> => {
     return apiRequest(`/orders/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
   },
 
-  delete: async (id: string) => {
+  delete: async (id: string): Promise<unknown> => {
     return apiRequest(`/orders/${id}`, {
       method: 'DELETE',
     });
   },
 
-  addItems: async (id: string, items: Array<{ productId: string; quantity: number }>) => {
+  addItems: async (id: string, items: Array<{ productId: string; quantity: number }>): Promise<unknown> => {
     return apiRequest(`/orders/${id}/items`, {
       method: 'POST',
       body: JSON.stringify({ items }),
@@ -265,69 +281,82 @@ export const ordersApi = {
 
 // Order Items API
 export const orderItemsApi = {
-  getAll: async (params?: { status?: string; orderId?: string }) => {
+  getAll: async (params?: { status?: string; orderId?: string }): Promise<unknown> => {
     const searchParams = new URLSearchParams();
-    if (params?.status) searchParams.append('status', params.status);
-    if (params?.orderId) searchParams.append('orderId', params.orderId);
+    if (params?.status) {
+      searchParams.append('status', params.status);
+    }
+    if (params?.orderId) {
+      searchParams.append('orderId', params.orderId);
+    }
     
     const query = searchParams.toString();
     return apiRequest(`/order-items${query ? `?${query}` : ''}`);
   },
 
-  getKitchenItems: async () => {
+  getKitchenItems: async (): Promise<unknown> => {
     return apiRequest('/order-items/kitchen');
   },
 
-  updateStatus: async (id: string, status: string) => {
+  updateStatus: async (id: string, status: string): Promise<unknown> => {
     return apiRequest(`/order-items/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
-    });
-  },
-
-  delete: async (id: string) => {
-    return apiRequest(`/order-items/${id}`, {
-      method: 'DELETE',
     });
   },
 };
 
 // Statistics API
 export const statisticsApi = {
-  get: async (params?: { startDate?: string; endDate?: string }) => {
+  getOverview: async (): Promise<unknown> => {
+    return apiRequest('/statistics');
+  },
+
+  getOrderStats: async (params?: { 
+    startDate?: string; 
+    endDate?: string; 
+    groupBy?: 'day' | 'week' | 'month' 
+  }): Promise<unknown> => {
     const searchParams = new URLSearchParams();
-    if (params?.startDate) searchParams.append('startDate', params.startDate);
-    if (params?.endDate) searchParams.append('endDate', params.endDate);
+    if (params?.startDate) {
+      searchParams.append('startDate', params.startDate);
+    }
+    if (params?.endDate) {
+      searchParams.append('endDate', params.endDate);
+    }
+    if (params?.groupBy) {
+      searchParams.append('groupBy', params.groupBy);
+    }
     
     const query = searchParams.toString();
-    return apiRequest(`/statistics${query ? `?${query}` : ''}`);
+    return apiRequest(`/statistics/orders${query ? `?${query}` : ''}`);
   },
 
-  export: async (format: 'csv' | 'pdf' = 'csv') => {
-    return apiRequest('/statistics/export', {
-      method: 'POST',
-      body: JSON.stringify({ format }),
-    });
+  getProductStats: async (): Promise<unknown> => {
+    return apiRequest('/statistics/products');
   },
-};
 
-// Health Check
-export const healthApi = {
-  check: async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`);
-      return await response.json();
-    } catch (error) {
-      throw new Error('Backend nicht erreichbar');
+  getRevenueStats: async (params?: { 
+    startDate?: string; 
+    endDate?: string; 
+  }): Promise<unknown> => {
+    const searchParams = new URLSearchParams();
+    if (params?.startDate) {
+      searchParams.append('startDate', params.startDate);
     }
+    if (params?.endDate) {
+      searchParams.append('endDate', params.endDate);
+    }
+    
+    const query = searchParams.toString();
+    return apiRequest(`/statistics/revenue${query ? `?${query}` : ''}`);
   },
 };
 
-// Debug Information
-export const getApiInfo = () => {
+// API Info für Debugging
+export const getApiInfo = (): { baseUrl: string; environment: string } => {
   return {
     baseUrl: API_BASE_URL,
-    environment: process.env.NODE_ENV,
-    isClient: typeof window !== 'undefined',
+    environment: process.env.NODE_ENV || 'development'
   };
 }; 

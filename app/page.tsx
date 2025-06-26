@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useAuth } from '@/components/auth-provider'
 import { useRouter } from 'next/navigation'
 
-export default function Home() {
+export default function Home(): React.ReactElement | null {
   const { user, loading } = useAuth()
   const router = useRouter()
 

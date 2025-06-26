@@ -75,9 +75,10 @@ export default function TableViewPage() {
         productsApi.getAll()
       ])
 
-      if (tablesRes.success && productsRes.success) {
-        setTables(tablesRes.data)
-        setProducts(productsRes.data)
+      if (tablesRes && typeof tablesRes === 'object' && 'success' in tablesRes && tablesRes.success &&
+          productsRes && typeof productsRes === 'object' && 'success' in productsRes && productsRes.success) {
+        setTables((tablesRes as unknown as { data: Table[] }).data)
+        setProducts((productsRes as unknown as { data: Product[] }).data)
       }
     } catch (error) {
       console.error('Fehler beim Laden der Daten:', error)
@@ -99,7 +100,7 @@ export default function TableViewPage() {
   const fetchTableOrders = async (tableId: string) => {
     try {
       const response = await ordersApi.getAll({ tableId })
-      if (response.success) {
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
         // Hier könnten wir die aktuellen Bestellungen anzeigen
       }
     } catch (error) {
@@ -148,7 +149,7 @@ export default function TableViewPage() {
         items: currentOrder
       })
 
-      if (response.success) {
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
         setCurrentOrder([])
         setSelectedTable(null)
         fetchData() // Daten neu laden
