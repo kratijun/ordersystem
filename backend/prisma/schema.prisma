@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  password  String
+  role      String   // 'ADMIN' or 'WAITER'
+  createdAt DateTime @default(now())
+  
+  orders Order[]
+}
+
+model Table {
+  id               String  @id @default(cuid())
+  number           Int     @unique
+  status           String  // 'FREE', 'OCCUPIED', 'RESERVED', 'CLOSED'
+  reservationName  String?
+  reservationPhone String?
+  reservationDate  String?
+  reservationTime  String?
+  reservationGuests Int?
+  closedReason     String?
+  
+  orders Order[]
+}
+
+model Product {
+  id       String @id @default(cuid())
+  name     String
+  price    Float
+  category String
+  
+  orderItems OrderItem[]
+  
+  @@unique([name, category])
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  tableId   String
+  userId    String
+  status    String   // 'OPEN', 'PAID', 'CANCELLED'
+  createdAt DateTime @default(now())
+  
+  table Table @relation(fields: [tableId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+  items OrderItem[]
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  status    String // 'ORDERED', 'PREPARING', 'READY', 'SERVED'
+  
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+} 
