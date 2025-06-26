@@ -7,7 +7,7 @@ const nextConfig = {
       : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'  // In Development: localhost
   },
   
-  // Für bessere Performance in Production
+  // Für bessere Performance in Production.
   output: 'standalone',
   
   // Experimentelle Features für bessere Performance
