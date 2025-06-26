@@ -232,9 +232,23 @@ export const ordersApi = {
     });
   },
 
+  updateStatus: async (id: string, status: string) => {
+    return apiRequest(`/orders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
   delete: async (id: string) => {
     return apiRequest(`/orders/${id}`, {
       method: 'DELETE',
+    });
+  },
+
+  addItems: async (id: string, items: Array<{ productId: string; quantity: number }>) => {
+    return apiRequest(`/orders/${id}/items`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
     });
   },
 };
