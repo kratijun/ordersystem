@@ -15,6 +15,19 @@ const nextConfig = {
     optimizeCss: true,
   },
   
+  // Backend-Dateien von Next.js Build ausschließen
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
+  
   // Rewrites für API Proxy in Production (optional)
   async rewrites() {
     // Nur in Production, wenn keine explizite API URL gesetzt ist
