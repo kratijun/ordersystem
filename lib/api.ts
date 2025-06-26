@@ -179,8 +179,13 @@ export const tablesApi = {
 
 // Products API
 export const productsApi = {
-  getAll: async () => {
-    return apiRequest('/products');
+  getAll: async (params?: { category?: string; search?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.category) searchParams.append('category', params.category);
+    if (params?.search) searchParams.append('search', params.search);
+    
+    const query = searchParams.toString();
+    return apiRequest(`/products${query ? `?${query}` : ''}`);
   },
 
   getCategories: async () => {
@@ -210,8 +215,13 @@ export const productsApi = {
 
 // Orders API
 export const ordersApi = {
-  getAll: async () => {
-    return apiRequest('/orders');
+  getAll: async (params?: { status?: string; tableId?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.tableId) searchParams.append('tableId', params.tableId);
+    
+    const query = searchParams.toString();
+    return apiRequest(`/orders${query ? `?${query}` : ''}`);
   },
 
   getById: async (id: string) => {
@@ -255,8 +265,17 @@ export const ordersApi = {
 
 // Order Items API
 export const orderItemsApi = {
-  getAll: async () => {
-    return apiRequest('/order-items');
+  getAll: async (params?: { status?: string; orderId?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.orderId) searchParams.append('orderId', params.orderId);
+    
+    const query = searchParams.toString();
+    return apiRequest(`/order-items${query ? `?${query}` : ''}`);
+  },
+
+  getKitchenItems: async () => {
+    return apiRequest('/order-items/kitchen');
   },
 
   updateStatus: async (id: string, status: string) => {
@@ -275,8 +294,13 @@ export const orderItemsApi = {
 
 // Statistics API
 export const statisticsApi = {
-  get: async () => {
-    return apiRequest('/statistics');
+  get: async (params?: { startDate?: string; endDate?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.startDate) searchParams.append('startDate', params.startDate);
+    if (params?.endDate) searchParams.append('endDate', params.endDate);
+    
+    const query = searchParams.toString();
+    return apiRequest(`/statistics${query ? `?${query}` : ''}`);
   },
 
   export: async (format: 'csv' | 'pdf' = 'csv') => {
