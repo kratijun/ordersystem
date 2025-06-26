@@ -1,283 +1,295 @@
-// API Client für das Express.js Backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// API Client für das Orderman System
+// Alle API-Calls sollten über diese Funktionen laufen
 
-// Token aus localStorage holen
-const getToken = () => {
+// Automatische API Base URL Erkennung
+const getApiBaseUrl = (): string => {
+  // In Development: Aus Environment Variable
+  if (process.env.NODE_ENV === 'development') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  }
+
+  // In Production: Automatische Erkennung basierend auf der aktuellen Domain
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth-token');
+    // Client-side: Basierend auf der aktuellen Domain
+    const { protocol, hostname, port } = window.location;
+    
+    // Wenn explizite API URL gesetzt ist, diese verwenden
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return process.env.NEXT_PUBLIC_API_URL;
+    }
+    
+    // Standard: Relative URL (Backend läuft auf derselben Domain)
+    return '/api';
   }
-  return null;
+
+  // Server-side: Fallback
+  return process.env.NEXT_PUBLIC_API_URL || '/api';
 };
 
-// Headers mit Authorization
-const getHeaders = () => {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  
-  return headers;
-};
+const API_BASE_URL = getApiBaseUrl();
 
-// Basis API-Funktion
-const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+// Helper Funktion für API-Requests
+const apiRequest = async (
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<any> => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  
   const url = `${API_BASE_URL}${endpoint}`;
   
   const config: RequestInit = {
-    headers: getHeaders(),
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
     ...options,
   };
 
-  const response = await fetch(url, config);
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Network error' }));
-    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-  }
+  try {
+    const response = await fetch(url, config);
+    
+    // Wenn Response nicht OK, versuche JSON Error zu parsen
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch {
+        // Fallback wenn JSON parsing fehlschlägt
+      }
+      
+      throw new Error(errorMessage);
+    }
 
-  return response.json();
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`API Request Error (${endpoint}):`, error);
+    throw error;
+  }
 };
 
-// Auth API
+// Authentication API
 export const authApi = {
-  login: async (name: string, password: string) => {
-    const response = await apiCall('/auth/login', {
+  login: async (credentials: { name: string; password: string }) => {
+    return apiRequest('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ name, password }),
+      body: JSON.stringify(credentials),
     });
-    
-    if (response.success && response.data.token) {
-      localStorage.setItem('auth-token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-    }
-    
-    return response;
   },
 
-  logout: () => {
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('user');
-  },
-
-  me: () => apiCall('/auth/me'),
-
-  register: (userData: { name: string; password: string; role?: string }) =>
-    apiCall('/auth/register', {
+  register: async (userData: { name: string; password: string; role?: string }) => {
+    return apiRequest('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
-    }),
+    });
+  },
+
+  getCurrentUser: async () => {
+    return apiRequest('/auth/me');
+  },
 };
 
 // Users API
 export const usersApi = {
-  getAll: () => apiCall('/users'),
-  
-  create: (userData: { name: string; password: string; role: string }) =>
-    apiCall('/users', {
+  getAll: async () => {
+    return apiRequest('/users');
+  },
+
+  create: async (userData: { name: string; password: string; role: string }) => {
+    return apiRequest('/users', {
       method: 'POST',
       body: JSON.stringify(userData),
-    }),
+    });
+  },
 
-  update: (id: string, userData: { name?: string; role?: string; password?: string }) =>
-    apiCall(`/users/${id}`, {
+  update: async (id: string, userData: { name?: string; password?: string; role?: string }) => {
+    return apiRequest(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(userData),
-    }),
+    });
+  },
 
-  delete: (id: string) =>
-    apiCall(`/users/${id}`, {
+  delete: async (id: string) => {
+    return apiRequest(`/users/${id}`, {
       method: 'DELETE',
-    }),
+    });
+  },
 
-  updateProfile: (userData: { name?: string; currentPassword?: string; newPassword?: string }) =>
-    apiCall('/users/profile', {
+  updateProfile: async (userData: { name?: string; password?: string }) => {
+    return apiRequest('/users/profile', {
       method: 'PUT',
       body: JSON.stringify(userData),
-    }),
+    });
+  },
 };
 
 // Tables API
 export const tablesApi = {
-  getAll: () => apiCall('/tables'),
-  
-  getById: (id: string) => apiCall(`/tables/${id}`),
-  
-  create: (tableData: { number: number }) =>
-    apiCall('/tables', {
+  getAll: async () => {
+    return apiRequest('/tables');
+  },
+
+  getById: async (id: string) => {
+    return apiRequest(`/tables/${id}`);
+  },
+
+  create: async (tableData: { number: number }) => {
+    return apiRequest('/tables', {
       method: 'POST',
       body: JSON.stringify(tableData),
-    }),
+    });
+  },
 
-  update: (id: string, tableData: any) =>
-    apiCall(`/tables/${id}`, {
+  update: async (id: string, tableData: any) => {
+    return apiRequest(`/tables/${id}`, {
       method: 'PUT',
       body: JSON.stringify(tableData),
-    }),
+    });
+  },
 
-  delete: (id: string) =>
-    apiCall(`/tables/${id}`, {
+  delete: async (id: string) => {
+    return apiRequest(`/tables/${id}`, {
       method: 'DELETE',
-    }),
+    });
+  },
 
-  reserve: (id: string, reservationData: {
+  reserve: async (id: string, reservationData: {
     reservationName: string;
-    reservationPhone: string;
+    reservationPhone?: string;
     reservationDate: string;
     reservationTime: string;
-    reservationGuests?: number;
-  }) =>
-    apiCall(`/tables/${id}/reserve`, {
+    reservationGuests: number;
+  }) => {
+    return apiRequest(`/tables/${id}/reserve`, {
       method: 'PUT',
       body: JSON.stringify(reservationData),
-    }),
+    });
+  },
 
-  close: (id: string, closedReason: string) =>
-    apiCall(`/tables/${id}/close`, {
+  close: async (id: string, reason?: string) => {
+    return apiRequest(`/tables/${id}/close`, {
       method: 'PUT',
-      body: JSON.stringify({ closedReason }),
-    }),
+      body: JSON.stringify({ closedReason: reason }),
+    });
+  },
 };
 
 // Products API
 export const productsApi = {
-  getAll: (params?: { category?: string; search?: string }) => {
-    const searchParams = new URLSearchParams();
-    if (params?.category) searchParams.append('category', params.category);
-    if (params?.search) searchParams.append('search', params.search);
-    
-    const query = searchParams.toString();
-    return apiCall(`/products${query ? `?${query}` : ''}`);
+  getAll: async () => {
+    return apiRequest('/products');
   },
 
-  getCategories: () => apiCall('/products/categories'),
-  
-  create: (productData: { name: string; price: number; category: string }) =>
-    apiCall('/products', {
+  getCategories: async () => {
+    return apiRequest('/products/categories');
+  },
+
+  create: async (productData: { name: string; price: number; category: string }) => {
+    return apiRequest('/products', {
       method: 'POST',
       body: JSON.stringify(productData),
-    }),
+    });
+  },
 
-  update: (id: string, productData: { name?: string; price?: number; category?: string }) =>
-    apiCall(`/products/${id}`, {
+  update: async (id: string, productData: { name?: string; price?: number; category?: string }) => {
+    return apiRequest(`/products/${id}`, {
       method: 'PUT',
       body: JSON.stringify(productData),
-    }),
+    });
+  },
 
-  delete: (id: string) =>
-    apiCall(`/products/${id}`, {
+  delete: async (id: string) => {
+    return apiRequest(`/products/${id}`, {
       method: 'DELETE',
-    }),
+    });
+  },
 };
 
 // Orders API
 export const ordersApi = {
-  getAll: (params?: { status?: string; tableId?: string }) => {
-    const searchParams = new URLSearchParams();
-    if (params?.status) searchParams.append('status', params.status);
-    if (params?.tableId) searchParams.append('tableId', params.tableId);
-    
-    const query = searchParams.toString();
-    return apiCall(`/orders${query ? `?${query}` : ''}`);
+  getAll: async () => {
+    return apiRequest('/orders');
   },
 
-  getById: (id: string) => apiCall(`/orders/${id}`),
-  
-  create: (orderData: { tableId: string; items: Array<{ productId: string; quantity: number }> }) =>
-    apiCall('/orders', {
+  getById: async (id: string) => {
+    return apiRequest(`/orders/${id}`);
+  },
+
+  create: async (orderData: { tableId: string; items: Array<{ productId: string; quantity: number }> }) => {
+    return apiRequest('/orders', {
       method: 'POST',
       body: JSON.stringify(orderData),
-    }),
+    });
+  },
 
-  update: (id: string, orderData: { status?: string }) =>
-    apiCall(`/orders/${id}`, {
+  update: async (id: string, orderData: any) => {
+    return apiRequest(`/orders/${id}`, {
       method: 'PUT',
       body: JSON.stringify(orderData),
-    }),
+    });
+  },
 
-  updateStatus: (id: string, status: string) =>
-    apiCall(`/orders/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    }),
-
-  delete: (id: string) =>
-    apiCall(`/orders/${id}`, {
+  delete: async (id: string) => {
+    return apiRequest(`/orders/${id}`, {
       method: 'DELETE',
-    }),
-
-  addItems: (id: string, items: Array<{ productId: string; quantity: number }>) =>
-    apiCall(`/orders/${id}/items`, {
-      method: 'POST',
-      body: JSON.stringify({ items }),
-    }),
+    });
+  },
 };
 
 // Order Items API
 export const orderItemsApi = {
-  getAll: (params?: { status?: string; orderId?: string }) => {
-    const searchParams = new URLSearchParams();
-    if (params?.status) searchParams.append('status', params.status);
-    if (params?.orderId) searchParams.append('orderId', params.orderId);
-    
-    const query = searchParams.toString();
-    return apiCall(`/order-items${query ? `?${query}` : ''}`);
+  getAll: async () => {
+    return apiRequest('/order-items');
   },
 
-  getKitchenItems: () => apiCall('/order-items/kitchen'),
-
-  update: (id: string, itemData: { status?: string; quantity?: number }) =>
-    apiCall(`/order-items/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(itemData),
-    }),
-
-  updateStatus: (id: string, status: string) =>
-    apiCall(`/order-items/${id}`, {
+  updateStatus: async (id: string, status: string) => {
+    return apiRequest(`/order-items/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
-    }),
+    });
+  },
 
-  startPreparation: (id: string) =>
-    apiCall(`/order-items/${id}/start-preparation`, {
-      method: 'PUT',
-    }),
-
-  markReady: (id: string) =>
-    apiCall(`/order-items/${id}/mark-ready`, {
-      method: 'PUT',
-    }),
-
-  delete: (id: string) =>
-    apiCall(`/order-items/${id}`, {
+  delete: async (id: string) => {
+    return apiRequest(`/order-items/${id}`, {
       method: 'DELETE',
-    }),
+    });
+  },
 };
 
 // Statistics API
 export const statisticsApi = {
-  get: (params?: { startDate?: string; endDate?: string }) => {
-    const searchParams = new URLSearchParams();
-    if (params?.startDate) searchParams.append('startDate', params.startDate);
-    if (params?.endDate) searchParams.append('endDate', params.endDate);
-    
-    const query = searchParams.toString();
-    return apiCall(`/statistics${query ? `?${query}` : ''}`);
+  get: async () => {
+    return apiRequest('/statistics');
   },
 
-  export: (params: { format: 'csv' | 'json'; type: string; startDate?: string; endDate?: string }) => {
-    const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value) searchParams.append(key, value);
+  export: async (format: 'csv' | 'pdf' = 'csv') => {
+    return apiRequest('/statistics/export', {
+      method: 'POST',
+      body: JSON.stringify({ format }),
     });
-    
-    return apiCall(`/statistics/export?${searchParams.toString()}`);
   },
 };
 
 // Health Check
-export const healthCheck = () => 
-  fetch(`${API_BASE_URL.replace('/api', '')}/health`).then(res => res.json()); 
+export const healthApi = {
+  check: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`);
+      return await response.json();
+    } catch (error) {
+      throw new Error('Backend nicht erreichbar');
+    }
+  },
+};
+
+// Debug Information
+export const getApiInfo = () => {
+  return {
+    baseUrl: API_BASE_URL,
+    environment: process.env.NODE_ENV,
+    isClient: typeof window !== 'undefined',
+  };
+}; 

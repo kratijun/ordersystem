@@ -2,6 +2,8 @@
 
 Ein vollständiges Restaurant-Bestellsystem mit separatem Frontend (Next.js) und Backend (Express.js). Ermöglicht Kellnern die Verwaltung von Tischbestellungen und Administratoren die Verwaltung von Benutzern, Produkten und Statistiken.
 
+**🌐 Automatische Domain-Erkennung**: Das System konfiguriert sich automatisch für jede Domain, auf der es installiert wird!
+
 ## 📋 Inhaltsverzeichnis
 
 - [Features](#features)
@@ -140,15 +142,23 @@ npx prisma db seed
 
 #### Frontend (.env.local)
 ```env
+# Für Development
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
+
+# Für Production (optional - wird automatisch erkannt)
+# NEXT_PUBLIC_API_URL=  # Leer lassen für automatische Domain-Erkennung
+# NEXT_PUBLIC_API_URL=https://your-domain.com/api  # Oder explizit setzen
 ```
 
 #### Backend (.env)
 ```env
 DATABASE_URL="file:./prisma/dev.db"
-JWT_SECRET=your-super-secret-jwt-key-here
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
 PORT=5000
 NODE_ENV=development
+
+# Optional: Explizite Frontend URL setzen
+# FRONTEND_URL=https://your-domain.com
 ```
 
 ## 🎯 Verwendung
@@ -365,6 +375,21 @@ server {
 ```
 
 ### Environment Variables (Production)
+
+#### Automatische Konfiguration (Empfohlen)
+```env
+# Frontend - Keine API URL nötig, wird automatisch erkannt
+# .env.local kann leer bleiben oder nur Development-Werte enthalten
+
+# Backend
+DATABASE_URL="file:./prisma/prod.db"
+JWT_SECRET=your-super-secret-production-jwt-key
+PORT=5000
+NODE_ENV=production
+# FRONTEND_URL wird automatisch erkannt
+```
+
+#### Explizite Konfiguration (Optional)
 ```env
 # Frontend
 NEXT_PUBLIC_API_URL=https://your-domain.com/api
@@ -374,7 +399,56 @@ DATABASE_URL="file:./prisma/prod.db"
 JWT_SECRET=your-super-secret-production-jwt-key
 PORT=5000
 NODE_ENV=production
+FRONTEND_URL=https://your-domain.com
 ```
+
+## 🌐 Automatische Domain-Konfiguration
+
+### 🔧 Wie es funktioniert
+
+Das System erkennt automatisch die Domain, auf der es läuft:
+
+#### Development
+- **Frontend**: `http://localhost:3000`
+- **Backend**: `http://localhost:5000`
+- **API Calls**: Direkt zu localhost:5000
+
+#### Production
+- **Automatische Erkennung**: Das Frontend erkennt die aktuelle Domain
+- **Relative API URLs**: `/api` statt absolute URLs
+- **CORS**: Automatische Freigabe für HTTPS-Domains
+- **Flexible Konfiguration**: Explizite URLs optional möglich
+
+### 📋 Deployment auf beliebiger Domain
+
+1. **Einfaches Deployment**:
+   ```bash
+   # Keine Domain-spezifische Konfiguration nötig!
+   npm run build
+   ```
+
+2. **Automatische Konfiguration**:
+   - Frontend erkennt aktuelle Domain automatisch
+   - Backend erlaubt alle HTTPS-Domains
+   - API-Calls funktionieren relativ zur Domain
+
+3. **Optionale explizite Konfiguration**:
+   ```env
+   # Frontend
+   NEXT_PUBLIC_API_URL=https://api.your-domain.com/api
+   
+   # Backend
+   FRONTEND_URL=https://your-domain.com
+   ```
+
+### 🚀 Multi-Domain Support
+
+Das System unterstützt:
+- **Entwicklung**: localhost:3000 ↔ localhost:5000
+- **Staging**: staging.your-domain.com
+- **Production**: your-domain.com
+- **Custom Domains**: any-domain.com
+- **Subdomains**: app.your-domain.com
 
 ## 🐛 Troubleshooting
 
