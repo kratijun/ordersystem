@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id       String @id @default(cuid())
+  name     String
+  role     String
+  password String
+  orders   Order[]
+
+  @@map("users")
+}
+
+model Table {
+  id               String  @id @default(cuid())
+  number           Int     @unique
+  status           String  @default("FREE")
+  reservationName  String?
+  reservationPhone String?
+  reservationDate  String?
+  reservationTime  String?
+  reservationGuests Int?
+  closedReason     String?
+  orders           Order[]
+
+  @@map("tables")
+}
+
+model Product {
+  id         String      @id @default(cuid())
+  name       String
+  price      Float
+  category   String
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  tableId   String
+  userId    String
+  status    String   @default("OPEN")
+  createdAt DateTime @default(now())
+  
+  table     Table       @relation(fields: [tableId], references: [id])
+  user      User        @relation(fields: [userId], references: [id])
+  items     OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  status    String @default("ORDERED")
+  
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+ 
